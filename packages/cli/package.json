@@ -1,0 +1,30 @@
+{
+	"name": "@rifted/cli",
+	"version": "0.1.0",
+	"description": "Command-line tools for building Rifted mods",
+	"type": "module",
+	"bin": {
+		"rifted": "./dist/cli.js"
+	},
+	"main": "./dist/cli.js",
+	"files": ["dist", "templates", "README.md"],
+	"scripts": {
+		"build": "bun build src/cli.ts --outdir dist --target node --format esm --external @rifted/sdk --external zod --external citty --external picocolors",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@rifted/sdk": "workspace:*",
+		"citty": "^0.1.6",
+		"picocolors": "^1.1.1",
+		"zod": "^4.0.0"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5.7.0"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"keywords": ["rifted", "gamedev", "modding", "cli"],
+	"license": "MIT"
+}

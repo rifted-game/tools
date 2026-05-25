@@ -7,14 +7,19 @@
 		"rifted": "./dist/cli.js"
 	},
 	"main": "./dist/cli.js",
-	"files": ["dist", "templates", "README.md"],
+	"files": [
+		"dist",
+		"templates",
+		"README.md"
+	],
 	"scripts": {
-		"build": "bun build src/cli.ts --outdir dist --target node --format esm --external @rifted/sdk --external zod --external citty --external picocolors",
+		"build": "bun build src/cli.ts --outdir dist --target node --format esm --external @rifted/sdk --external zod --external citty --external picocolors --external jiti",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@rifted/sdk": "workspace:*",
 		"citty": "^0.1.6",
+		"jiti": "^2.7.0",
 		"picocolors": "^1.1.1",
 		"zod": "^4.0.0"
 	},
@@ -25,6 +30,11 @@
 	"engines": {
 		"node": ">=20"
 	},
-	"keywords": ["rifted", "gamedev", "modding", "cli"],
+	"keywords": [
+		"rifted",
+		"gamedev",
+		"modding",
+		"cli"
+	],
 	"license": "MIT"
 }

@@ -2,14 +2,18 @@
 	"name": "rifted-sdk-monorepo",
 	"private": true,
 	"type": "module",
-	"workspaces": ["packages/*"],
+	"workspaces": [
+		"packages/*"
+	],
 	"scripts": {
 		"build": "bun run --filter '*' build",
+		"build:schema": "bun run --filter '@rifted/sdk' build:schema",
 		"test": "bun test",
+		"test:watch": "bun test --watch",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"typecheck": "bun run --filter '*' typecheck",
-		"prepare": "lefthook install"
+		"prepare": "lefthook install && bun run build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.0",

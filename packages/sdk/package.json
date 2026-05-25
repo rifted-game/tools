@@ -16,9 +16,13 @@
 			"import": "./dist/schema/index.js"
 		}
 	},
-	"files": ["dist", "README.md"],
+	"files": [
+		"dist",
+		"README.md"
+	],
 	"scripts": {
-		"build": "bun run build:types && bun run build:schema",
+		"build": "bun run build:js && bun run build:types && bun run build:schema",
+		"build:js": "bun build ./src/index.ts ./src/schema/index.ts --outdir ./dist --target node --format esm",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"build:schema": "bun run scripts/emit-json-schema.ts",
 		"typecheck": "tsc --noEmit",
@@ -34,6 +38,11 @@
 	"engines": {
 		"node": ">=20"
 	},
-	"keywords": ["rifted", "gamedev", "modding", "sdk"],
+	"keywords": [
+		"rifted",
+		"gamedev",
+		"modding",
+		"sdk"
+	],
 	"license": "MIT"
 }

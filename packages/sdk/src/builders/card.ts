@@ -21,17 +21,53 @@ export interface CardOpts {
 	baseCooldown: number
 	scaleType: ScaleType
 	params: Record<string, number>
+	/**
+	 * Display name shown on the card.
+	 *
+	 * When omitted the engine looks up `<namespace>-card-<name>.name` from the
+	 * mod's ftl files. Example: id `my_mod:rage` → key `my_mod-card-rage.name`.
+	 *
+	 * Pass `{ key: 'my_mod-card-rage-alt' }` to use a different key.
+	 * Pass a plain string or `{ en: '...', ru: '...' }` for inline text.
+	 */
 	name?: Text
+	/**
+	 * Rules text shown below the card name.
+	 *
+	 * When omitted resolves to `<namespace>-card-<name>.description`.
+	 *
+	 * The engine exposes card `params` as Fluent variables automatically:
+	 * `params: { base: 8 }` makes `{ $base }` available in the ftl description.
+	 * Use `render` to expose computed or renamed values instead.
+	 *
+	 * Example ftl:
+	 * ```
+	 * my_mod-card-strike = Strike
+	 *     .description = Deal { $base } damage.
+	 * ```
+	 */
 	description?: Text
-	modeTags?: ModeTag[]
+	/**
+	 * Named values exposed as Fluent variables in the ftl description.
+	 * Each key becomes `{ $key }` in the message.
+	 *
+	 * Example: `render: { damage: Scale(Param('base')) }` → `Deal { $damage } damage.`
+	 *
+	 * When omitted, all `params` keys are auto-exposed by their own names.
+	 * Only set `render` when you need computed, scaled, or renamed values.
+	 */
 	render?: Record<string, Value>
+	modeTags?: ModeTag[]
 	initialState?: Record<string, StateInit>
 	hiddenUntilRevealed?: boolean
 	revealTriggers?: RevealTriggerOpts[]
 	initialCharges?: number
 	consumeChargesOnPlay?: boolean
-	isModifierDonor?: boolean
 	acceptsModifiers?: boolean
+	/**
+	 * Makes this card a modifier donor. Setting this field automatically marks
+	 * the card as `is_modifier_donor` and sets `accepts_modifiers: false`.
+	 */
 	asModifier?: AsModifier
 	icon?: string
 	modifierIcon?: string
@@ -64,7 +100,7 @@ const cardRenames = {
 	passiveListeners: 'passive_listeners',
 }
 
-/** define a card. composed of required mechanical fields and optional visual/state overrides */
+/** define a card */
 export function Card(opts: CardOpts): CardSchema {
 	const required = {
 		id: opts.id,
@@ -84,8 +120,9 @@ export function Card(opts: CardOpts): CardSchema {
 		revealTriggers: opts.revealTriggers,
 		initialCharges: opts.initialCharges,
 		consumeChargesOnPlay: opts.consumeChargesOnPlay,
-		isModifierDonor: opts.isModifierDonor,
-		acceptsModifiers: opts.acceptsModifiers,
+		// asModifier presence implies donor — no need to set isModifierDonor manually
+		isModifierDonor: opts.asModifier !== undefined ? true : undefined,
+		acceptsModifiers: opts.asModifier !== undefined ? false : opts.acceptsModifiers,
 		asModifier: opts.asModifier,
 		icon: opts.icon,
 		modifierIcon: opts.modifierIcon,

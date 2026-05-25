@@ -10,7 +10,7 @@ import { Value } from './value'
 export const Summon = z
 	.object({
 		id: NamespacedId,
-		name: Text,
+		name: Text.optional(),
 		hp: Value,
 		max_hp: Value,
 		tags: z.array(SummonTag),

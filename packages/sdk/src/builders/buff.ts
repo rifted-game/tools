@@ -6,8 +6,13 @@ import type { Text } from '../schema/primitives'
 
 export interface BuffOpts {
 	id: string
-	name: Text
-	description: Text
+	/**
+	 * When omitted resolves to `<package.namespace>-buff-<id>.name` from ftl.
+	 * Note: buff ids are bare (no colon), namespace comes from the file's package block.
+	 */
+	name?: Text
+	/** When omitted resolves to `<package.namespace>-buff-<id>.description` */
+	description?: Text
 	icon: string
 	color: string
 	showStacks: boolean
@@ -32,8 +37,6 @@ const buffRenames = {
 export function Buff(opts: BuffOpts): BuffSchema {
 	const required = {
 		id: opts.id,
-		name: opts.name,
-		description: opts.description,
 		icon: opts.icon,
 		color: opts.color,
 		show_stacks: opts.showStacks,
@@ -41,6 +44,8 @@ export function Buff(opts: BuffOpts): BuffSchema {
 		kind: opts.kind,
 	}
 	const optional = {
+		name: opts.name,
+		description: opts.description,
 		warnPlayer: opts.warnPlayer,
 		affinityHint: opts.affinityHint,
 		engineFlags: opts.engineFlags,

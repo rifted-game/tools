@@ -81,7 +81,8 @@ export function FloorVisual(opts: {
 
 export interface LocationOpts {
 	id: string
-	name: Text
+	/** When omitted resolves to `<namespace>-location-<name>` from ftl */
+	name?: Text
 	act: number
 	map: ReturnType<typeof MapConfig>
 	visuals: ReturnType<typeof FloorVisual>[]
@@ -90,14 +91,10 @@ export interface LocationOpts {
 	defaultAmbient?: string
 	nodeIcons?: Record<string, string>
 	encounterTable?: Array<{ id: string; weightOverride?: number }>
-	lootBias?: {
-		commonDelta?: number
-		rareDelta?: number
-		legendaryDelta?: number
-	}
+	lootBias?: { commonDelta?: number; rareDelta?: number; legendaryDelta?: number }
 }
 
-/** define a location. one act may have multiple locations — engine picks one per run */
+/** define a location. one act may have multiple; the engine picks one per run */
 export function Location(opts: LocationOpts): LocationSchema {
 	const et = opts.encounterTable?.map(e =>
 		e.weightOverride === undefined ? { id: e.id } : { id: e.id, weight_override: e.weightOverride },
@@ -109,9 +106,7 @@ export function Location(opts: LocationOpts): LocationSchema {
 					...(opts.lootBias.commonDelta !== undefined && {
 						common_delta: opts.lootBias.commonDelta,
 					}),
-					...(opts.lootBias.rareDelta !== undefined && {
-						rare_delta: opts.lootBias.rareDelta,
-					}),
+					...(opts.lootBias.rareDelta !== undefined && { rare_delta: opts.lootBias.rareDelta }),
 					...(opts.lootBias.legendaryDelta !== undefined && {
 						legendary_delta: opts.lootBias.legendaryDelta,
 					}),
@@ -119,13 +114,13 @@ export function Location(opts: LocationOpts): LocationSchema {
 	return pack(
 		{
 			id: opts.id,
-			name: opts.name,
 			act: opts.act,
 			map: opts.map,
 			visuals: opts.visuals,
 			spawn_table: opts.spawnTable,
 		},
 		{
+			name: opts.name,
 			default_music: opts.defaultMusic,
 			default_ambient: opts.defaultAmbient,
 			node_icons: opts.nodeIcons,

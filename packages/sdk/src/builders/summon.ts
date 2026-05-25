@@ -9,7 +9,8 @@ import type { Value } from '../schema/value'
 
 export interface SummonOpts {
 	id: string
-	name: Text
+	/** When omitted resolves to `<namespace>-summon-<name>` from ftl */
+	name?: Text
 	hp: Value
 	maxHp: Value
 	tags: SummonTag[]
@@ -30,18 +31,18 @@ const summonRenames = {
 	passiveListeners: 'passive_listeners',
 }
 
-/** define a summon. ally or hostile creature that lives during combat only */
+/** define a summon — an ally or enemy that lives only during combat */
 export function Summon(opts: SummonOpts): SummonSchema {
 	return pack(
 		{
 			id: opts.id,
-			name: opts.name,
 			hp: opts.hp,
 			max_hp: opts.maxHp,
 			tags: opts.tags,
 			intent_pattern: opts.intentPattern,
 		},
 		{
+			name: opts.name,
 			icon: opts.icon,
 			sfxAttack: opts.sfxAttack,
 			sfxDeath: opts.sfxDeath,

@@ -48,8 +48,7 @@ export const Card = z
 	.refine(
 		c => {
 			if (c.is_modifier_donor && !c.as_modifier) return false
-			if (c.as_modifier && !c.is_modifier_donor) return false
-			return true
+			return !(c.as_modifier && !c.is_modifier_donor)
 		},
 		{ message: 'is_modifier_donor=true requires as_modifier, and vice versa' },
 	)

@@ -1,15 +1,12 @@
 import type { Asset as AssetSchema } from '../schema/asset'
 import type { AssetKind } from '../schema/enums'
 
-/** declare a mod-tier asset. must appear before any reference to its path */
-export function Asset(opts: {
-	path: string
-	kind: AssetKind
-	sha256?: string
-	preload?: boolean
-}): AssetSchema {
+/**
+ * Declare a mod asset. Hashes are computed at pack time and stored in the
+ * .rmod manifest — no need to specify them here.
+ */
+export function Asset(opts: { path: string; kind: AssetKind; preload?: boolean }): AssetSchema {
 	const out: any = { path: opts.path, kind: opts.kind }
-	if (opts.sha256 !== undefined) out.sha256 = opts.sha256
 	if (opts.preload !== undefined) out.preload = opts.preload
 	return out
 }

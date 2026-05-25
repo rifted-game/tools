@@ -7,8 +7,8 @@ import { BareId, HexColor, Text } from './primitives'
 export const Buff = z
 	.object({
 		id: BareId,
-		name: Text,
-		description: Text,
+		name: Text.optional(),
+		description: Text.optional(),
 		icon: z.string().min(1),
 		color: HexColor,
 		show_stacks: z.boolean(),

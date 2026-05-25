@@ -11,12 +11,7 @@ export function Team(opts: {
 	name?: Text
 	color?: string
 }) {
-	const out: any = {
-		id: opts.id,
-		min_size: opts.minSize,
-		max_size: opts.maxSize,
-		kind: opts.kind,
-	}
+	const out: any = { id: opts.id, min_size: opts.minSize, max_size: opts.maxSize, kind: opts.kind }
 	if (opts.name !== undefined) out.name = opts.name
 	if (opts.color !== undefined) out.color = opts.color
 	return out
@@ -28,10 +23,12 @@ export function ActInSequence(opts: { act: number; locationPool: string[] }) {
 
 export interface MatchModeOpts {
 	id: string
-	name: Text
+	/** When omitted resolves to `<namespace>-mode-<name>.name` from ftl */
+	name?: Text
 	teams: ReturnType<typeof Team>[]
 	winCondition: WinCondition
 	actSequence: ReturnType<typeof ActInSequence>[]
+	/** When omitted resolves to `<namespace>-mode-<name>.description` (warning if missing) */
 	description?: Text
 	icon?: string
 	winParams?: Record<string, unknown>
@@ -56,12 +53,12 @@ export function MatchMode(opts: MatchModeOpts): MatchModeSchema {
 	return pack(
 		{
 			id: opts.id,
-			name: opts.name,
 			teams: opts.teams,
 			win_condition: opts.winCondition,
 			act_sequence: opts.actSequence,
 		},
 		{
+			name: opts.name,
 			description: opts.description,
 			icon: opts.icon,
 			winParams: opts.winParams,

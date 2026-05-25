@@ -5,6 +5,7 @@ import { Buff } from './buff'
 import { Card } from './card'
 import { Encounter } from './encounter'
 import { Enemy } from './enemy'
+import { LocaleFile } from './locale'
 import { Location } from './location'
 import { MatchMode } from './match-mode'
 import { Relic } from './relic'
@@ -12,19 +13,41 @@ import { Summon } from './summon'
 
 const PackageInfo = z
 	.object({
-		namespace: z.string().min(1),
+		namespace: z.string().regex(/^[a-z][a-z0-9_]*$/, 'namespace must be snake_case'),
 		version: z.string().min(1),
+		name: z.string().optional(),
 		author: z.string().optional(),
 		description: z.string().optional(),
+		homepage: z.string().optional(),
+		license: z.string().optional(),
+		rifted_version: z.string().optional(),
 		dependencies: z.record(z.string(), z.string()).optional(),
+		// set to declare a translation mod; must list the namespaces being translated.
+		// translation mods may only contain locales, no content sections
+		translates: z
+			.array(z.string().regex(/^[a-z][a-z0-9_]*$/))
+			.min(1)
+			.optional(),
 	})
 	.strict()
 
-// root gcf file. at least one content section must be present
+const CONTENT_SECTIONS = [
+	'assets',
+	'cards',
+	'buffs',
+	'relics',
+	'enemies',
+	'summons',
+	'encounters',
+	'locations',
+	'match_modes',
+] as const
+
 export const File = z
 	.object({
 		format_version: z.literal(1),
 		package: PackageInfo.optional(),
+		locales: z.array(LocaleFile).min(1).optional(),
 		assets: z.array(Asset).min(1).optional(),
 		cards: z.array(Card).min(1).optional(),
 		buffs: z.array(Buff).min(1).optional(),
@@ -36,20 +59,34 @@ export const File = z
 		match_modes: z.array(MatchMode).min(1).optional(),
 	})
 	.strict()
-	.refine(
-		f =>
-			!!(
-				f.assets ||
-				f.cards ||
-				f.buffs ||
-				f.relics ||
-				f.enemies ||
-				f.summons ||
-				f.encounters ||
-				f.locations ||
-				f.match_modes
-			),
-		{ message: 'gcf file must contain at least one content section' },
-	)
+	.superRefine((f, ctx) => {
+		const hasContent = CONTENT_SECTIONS.some(k => (f as any)[k] !== undefined)
+		const hasLocales = f.locales !== undefined
+		const isTranslation = (f.package?.translates?.length ?? 0) > 0
+
+		if (isTranslation) {
+			if (hasContent) {
+				ctx.addIssue({
+					code: 'custom',
+					message:
+						'translation mods (package.translates) cannot declare content sections, only locales',
+				})
+			}
+			if (!hasLocales) {
+				ctx.addIssue({
+					code: 'custom',
+					message: 'translation mods must declare at least one locale file',
+				})
+			}
+			return
+		}
+
+		if (!hasContent && !hasLocales) {
+			ctx.addIssue({
+				code: 'custom',
+				message: 'gcf file must contain at least one content section or locales',
+			})
+		}
+	})
 
 export type File = z.infer<typeof File>

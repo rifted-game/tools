@@ -6,8 +6,10 @@ import type { Relic as RelicSchema } from '../schema/relic'
 
 export interface RelicOpts {
 	id: string
-	name: Text
-	description: Text
+	/** When omitted resolves to `<namespace>-relic-<name>.name` from ftl */
+	name?: Text
+	/** When omitted resolves to `<namespace>-relic-<name>.description` */
+	description?: Text
 	icon: string
 	color: string
 	affinityHint: Affinity
@@ -15,17 +17,19 @@ export interface RelicOpts {
 	modeTags?: ModeTag[]
 }
 
-/** define a relic. permanent passive rendered in a dedicated slot */
+/** define a relic — a permanent passive rendered in a dedicated slot */
 export function Relic(opts: RelicOpts): RelicSchema {
 	const required = {
 		id: opts.id,
-		name: opts.name,
-		description: opts.description,
 		icon: opts.icon,
 		color: opts.color,
 		affinity_hint: opts.affinityHint,
 		passive_listeners: opts.passiveListeners,
 	}
-	const optional = { mode_tags: opts.modeTags }
+	const optional = {
+		name: opts.name,
+		description: opts.description,
+		mode_tags: opts.modeTags,
+	}
 	return pack(required, optional) as unknown as RelicSchema
 }

@@ -10,7 +10,8 @@ import type { Value } from '../schema/value'
 
 interface EnemyBase {
 	id: string
-	name: Text
+	/** When omitted resolves to `<namespace>-enemy-<name>` from ftl */
+	name?: Text
 	hp: Value
 	maxHp: Value
 	tags: EnemyTag[]
@@ -30,7 +31,7 @@ interface EnemyPhased extends EnemyBase {
 	intentPattern?: never
 }
 
-// discriminated union enforces "exactly one of intent_pattern / phases" at compile time
+// compile-time enforcement of "exactly one of intentPattern / phases"
 export type EnemyOpts = EnemyFlat | EnemyPhased
 
 const enemyRenames = {
@@ -42,17 +43,12 @@ const enemyRenames = {
 	passiveListeners: 'passive_listeners',
 }
 
-/** define an enemy. provide either intentPattern (flat) or phases (boss), never both */
+/** define an enemy. use `intentPattern` for normal enemies, `phases` for bosses */
 export function Enemy(opts: EnemyOpts): EnemySchema {
 	return pack(
+		{ id: opts.id, hp: opts.hp, max_hp: opts.maxHp, tags: opts.tags },
 		{
-			id: opts.id,
 			name: opts.name,
-			hp: opts.hp,
-			max_hp: opts.maxHp,
-			tags: opts.tags,
-		},
-		{
 			icon: opts.icon,
 			sfxAttack: opts.sfxAttack,
 			sfxDeath: opts.sfxDeath,

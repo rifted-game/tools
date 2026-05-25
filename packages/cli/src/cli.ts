@@ -3,6 +3,10 @@ import { defineCommand, runMain } from 'citty'
 
 import { buildCommand } from './commands/build'
 import { initCommand } from './commands/init'
+import { inspectCommand } from './commands/inspect'
+import { localesListCommand } from './commands/locales-list'
+import { localesScaffoldCommand } from './commands/locales-scaffold'
+import { packCommand } from './commands/pack'
 import { validateCommand } from './commands/validate'
 
 const main = defineCommand({
@@ -15,6 +19,10 @@ const main = defineCommand({
 		init: initCommand,
 		build: buildCommand,
 		validate: validateCommand,
+		pack: packCommand,
+		inspect: inspectCommand,
+		'locales:scaffold': localesScaffoldCommand,
+		'locales:list': localesListCommand,
 	},
 })
 

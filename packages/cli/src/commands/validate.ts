@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
 import { defineCommand } from 'citty'
 import pc from 'picocolors'
 
@@ -15,9 +16,15 @@ export const validateCommand = defineCommand({
 			required: false,
 			default: 'dist/gcf.json',
 		},
+		skipLocales: {
+			type: 'boolean',
+			default: false,
+			description: 'Skip locale file validation',
+		},
 	},
 	async run({ args }) {
-		const filePath = resolve(process.cwd(), args.file)
+		const cwd = process.cwd()
+		const filePath = resolve(cwd, args.file)
 
 		console.log(`${pc.dim('Validating')} ${pc.cyan(args.file)} …`)
 
@@ -25,33 +32,37 @@ export const validateCommand = defineCommand({
 		try {
 			raw = JSON.parse(readFileSync(filePath, 'utf-8'))
 		} catch (err: any) {
-			console.error(pc.red('Read failed: ') + err.message)
+			console.error(`${pc.red('Read failed:')} ${err.message}`)
 			process.exit(1)
 		}
 
-		// dynamic import keeps the sdk optional in the cli bundle path
 		const { File } = await import('@rifted/sdk/schema')
-
 		const result = File.safeParse(raw)
-
 		if (!result.success) {
-			console.error(pc.red('Validation failed'))
+			console.error(pc.red('Schema validation failed'))
 			for (const issue of result.error.issues) {
 				const path = issue.path.join('.')
 				console.error(`  ${pc.yellow(path || '<root>')}  ${pc.dim(issue.message)}`)
 			}
 			process.exit(1)
 		}
+		console.log(`${pc.green('✓')} Schema OK`)
 
-		const cards = (raw as any).cards?.length ?? 0
-		const buffs = (raw as any).buffs?.length ?? 0
-		const relics = (raw as any).relics?.length ?? 0
-		const enemies = (raw as any).enemies?.length ?? 0
+		const gcf = raw as any
+		if (!args.skipLocales && gcf.locales) {
+			const { validateLocales } = await import('@rifted/sdk/pack')
+			const report = validateLocales(gcf, cwd)
+			for (const w of report.warnings) console.warn(`${pc.yellow('warn')} ${w}`)
+			if (report.errors.length > 0) {
+				for (const e of report.errors) console.error(`${pc.red('error')} ${e}`)
+				process.exit(1)
+			}
+			console.log(`${pc.green('✓')} Locales OK`)
+		}
 
-		console.log(`${pc.green('✓')} Valid GCF`)
-		if (cards) console.log(`  ${pc.dim(`cards: ${cards}`)}`)
-		if (buffs) console.log(`  ${pc.dim(`buffs: ${buffs}`)}`)
-		if (relics) console.log(`  ${pc.dim(`relics: ${relics}`)}`)
-		if (enemies) console.log(`  ${pc.dim(`enemies: ${enemies}`)}`)
+		const count = (k: string) => gcf[k]?.length ?? 0
+		for (const name of ['cards', 'buffs', 'relics', 'enemies', 'encounters', 'locations']) {
+			if (count(name) > 0) console.log(`  ${pc.dim(`${name}:`)} ${count(name)}`)
+		}
 	},
 })

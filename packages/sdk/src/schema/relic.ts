@@ -7,8 +7,8 @@ import { HexColor, NamespacedId, Text } from './primitives'
 export const Relic = z
 	.object({
 		id: NamespacedId,
-		name: Text,
-		description: Text,
+		name: Text.optional(),
+		description: Text.optional(),
 		icon: z.string().min(1),
 		color: HexColor,
 		affinity_hint: Affinity,

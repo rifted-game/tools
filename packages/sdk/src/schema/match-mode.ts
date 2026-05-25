@@ -24,7 +24,7 @@ const ActInSequence = z
 export const MatchMode = z
 	.object({
 		id: NamespacedId,
-		name: Text,
+		name: Text.optional(),
 		description: Text.optional(),
 		icon: z.string().optional(),
 		teams: z.array(Team).min(1).max(8),

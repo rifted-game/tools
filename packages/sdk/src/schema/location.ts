@@ -74,7 +74,7 @@ const FloorVisual = z
 export const Location = z
 	.object({
 		id: NamespacedId,
-		name: Text,
+		name: Text.optional(),
 		act: z.number().int().min(1).max(10),
 		map: MapConfig,
 		visuals: z.array(FloorVisual).min(1),

@@ -11,7 +11,9 @@ import type { StateInit } from '../schema/state'
 
 export interface EncounterOpts {
 	id: string
+	/** When omitted resolves to `<namespace>-encounter-<name>.title` from ftl (warning if missing) */
 	title?: Text
+	/** When omitted resolves to `<namespace>-encounter-<name>.body` from ftl (warning if missing) */
 	body?: Text
 	icon?: string
 	background?: string
@@ -34,7 +36,7 @@ const encounterRenames = {
 	passiveListeners: 'passive_listeners',
 }
 
-/** define an encounter. scripted scene with actors, dialogue, and choices */
+/** define an encounter — a scripted scene with actors, dialogue, and choices */
 export function Encounter(opts: EncounterOpts): EncounterSchema {
 	return pack(
 		{ id: opts.id },

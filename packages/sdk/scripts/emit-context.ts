@@ -4,7 +4,7 @@
 // convention + gcf json schema. intentionally excludes the raw zod schema
 // declarations which are massive and not useful in chat context.
 
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 

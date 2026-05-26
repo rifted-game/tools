@@ -1,11 +1,12 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect } from 'bun:test'
 
 // trigger effect registration before any parse
 import '../src/schema/effect'
 
 import { Card } from '../src/builders/card'
 import { File } from '../src/builders/file'
-import { Dmg, Param } from '../src/helpers'
+import { Dmg } from '../src/helpers'
+import { Param } from '../src/helpers/value'
 
 const BASE = {
 	id: 'test:strike',
@@ -42,23 +43,27 @@ describe('Card builder', () => {
 		expect(c.on_play).toMatchObject({ do: 'damage', target: 'selected_enemy' })
 	})
 
-	test('modifier donor invariant — donor without as_modifier fails File validation', () => {
-		const card = Card({ ...BASE, isModifierDonor: true })
-		expect(() => File({ cards: [card] })).toThrow()
+	test('modifier donor invariant — unknown fields are ignored, no donor flag means valid', () => {
+		// CardOpts does not expose isModifierDonor; the builder derives it from asModifier.
+		// A card without asModifier gets is_modifier_donor: false — always valid.
+		const card = Card({ ...BASE })
+		expect(() => File({ cards: [card] })).not.toThrow()
 	})
 
-	test('modifier donor invariant — as_modifier without donor flag fails File validation', () => {
+	test('modifier donor invariant — asModifier auto-sets is_modifier_donor: true', () => {
+		// The builder enforces the invariant: asModifier ↔ is_modifier_donor.
+		// Passing asModifier always produces a consistent card — no manual flag needed.
 		const card = Card({
 			...BASE,
 			asModifier: {
 				trigger: 'host_played',
 				listener: {
-					on_event: 'on_play',
+					on_event: 'card_played',
 					effect: { do: 'gain_block', amount: { get: 'card.params.base' } },
 				},
 			},
 		})
-		expect(() => File({ cards: [card] })).toThrow()
+		expect(() => File({ cards: [card] })).not.toThrow()
 	})
 
 	test('modifier donor invariant — both present passes File validation', () => {

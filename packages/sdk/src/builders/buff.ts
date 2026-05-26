@@ -21,6 +21,10 @@ export interface BuffOpts {
 	warnPlayer?: boolean
 	affinityHint?: Affinity
 	engineFlags?: EngineFlag[]
+	/** immutable per-definition data shared across all instances of this buff */
+	params?: Record<string, number>
+	/** per-instance mutable state. each key seeds buff.state on apply */
+	initialState?: Record<string, { const: number } | { random_int: { min: number; max: number } }>
 	passiveListeners?: Listener[]
 }
 
@@ -30,6 +34,7 @@ const buffRenames = {
 	warnPlayer: 'warn_player',
 	affinityHint: 'affinity_hint',
 	engineFlags: 'engine_flags',
+	initialState: 'initial_state',
 	passiveListeners: 'passive_listeners',
 }
 
@@ -49,6 +54,8 @@ export function Buff(opts: BuffOpts): BuffSchema {
 		warnPlayer: opts.warnPlayer,
 		affinityHint: opts.affinityHint,
 		engineFlags: opts.engineFlags,
+		params: opts.params,
+		initialState: opts.initialState,
 		passiveListeners: opts.passiveListeners,
 	}
 	return pack(required, optional, buffRenames) as unknown as BuffSchema

@@ -38,9 +38,9 @@ export const buildCommand = defineCommand({
 	args: {
 		entry: {
 			type: 'positional',
-			description: 'Entry file (default: src/mod.ts)',
+			description: 'Entry file (default: src/index.ts)',
 			required: false,
-			default: 'src/mod.ts',
+			default: 'src/index.ts',
 		},
 		out: {
 			type: 'string',

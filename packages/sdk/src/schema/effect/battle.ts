@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { DamageModifierKind, Target } from '../enums'
+import { BareId } from '../primitives'
 import { Value } from '../value'
 
 const Duration = z.union([z.number().int().min(-1), Value])
@@ -27,6 +28,7 @@ export const applyBuffEffect = z
 		buff: BareBuffId,
 		stacks: Value,
 		duration: Duration,
+		snapshot: z.record(z.string(), Value).optional(),
 	})
 	.strict()
 
@@ -37,6 +39,7 @@ export const applyDebuffEffect = z
 		debuff: BareBuffId,
 		stacks: Value,
 		duration: Duration.optional().default(-1),
+		snapshot: z.record(z.string(), Value).optional(),
 	})
 	.strict()
 
@@ -47,6 +50,23 @@ export const addDamageModifierEffect = z
 	})
 	.strict()
 
+// mutate the state of the buff currently executing the listener
+export const addBuffStateEffect = z
+	.object({
+		do: z.literal('add_buff_state'),
+		key: BareId,
+		value: Value,
+	})
+	.strict()
+
+export const setBuffStateEffect = z
+	.object({
+		do: z.literal('set_buff_state'),
+		key: BareId,
+		value: Value,
+	})
+	.strict()
+
 export const battleEffects = [
 	damageEffect,
 	gainBlockEffect,
@@ -54,4 +74,6 @@ export const battleEffects = [
 	applyBuffEffect,
 	applyDebuffEffect,
 	addDamageModifierEffect,
+	addBuffStateEffect,
+	setBuffStateEffect,
 ] as const

@@ -50,18 +50,22 @@ export const Target = z.enum([
 	'all_enemies',
 	'selected_ally',
 	'all_allies',
+	'random_ally',
 	'selected_ally_card',
 	'selected_ally_card_on_cooldown',
 	'selected_own_card',
+	'random_own_card',
 	'selected_ally_summon',
 	'random_ally_summon',
 	'all_ally_summons',
 	'lowest_hp_ally',
 	'selected_player',
 	'all_players',
+	'random_player',
 	'last_summoned_ally',
 	'host_card',
 	'host_owner',
+	'random_ally_card',
 ])
 export type Target = z.infer<typeof Target>
 

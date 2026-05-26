@@ -71,7 +71,9 @@ export function File(opts: FileOpts): FileSchema {
 	if (opts.encounters !== undefined) raw.encounters = opts.encounters
 	if (opts.locations !== undefined) raw.locations = opts.locations
 	if (opts.matchModes !== undefined) raw.match_modes = opts.matchModes
-	return FileZod.parse(raw) as unknown as FileSchema
+	// JSON round-trip strips non-serializable properties (e.g. methods on fluent Expr values)
+	// before zod's strict schema validation runs
+	return FileZod.parse(JSON.parse(JSON.stringify(raw))) as unknown as FileSchema
 }
 
 /** declare a locale file entry */

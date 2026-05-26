@@ -1,3 +1,5 @@
+import { Get } from '../builders/value'
+import { type Expr, wrapExpr } from '../helpers/expr'
 import { pack } from '../internal/pack'
 import type { Actor } from '../schema/actor'
 import type { Choice } from '../schema/choice'
@@ -8,6 +10,36 @@ import type { ModeTag } from '../schema/enums'
 import type { Listener } from '../schema/listener'
 import type { Text } from '../schema/primitives'
 import type { StateInit } from '../schema/state'
+
+function dynProxy(prefix: string): Record<string, Expr> {
+	return new Proxy({} as Record<string, Expr>, {
+		get(_, key) {
+			if (typeof key !== 'string') return undefined
+			return wrapExpr(Get(`${prefix}.${key}`))
+		},
+	})
+}
+
+/** context available inside Encounter.intro and Encounter.outro callbacks */
+export interface EncounterCallbackCtx {
+	/** encounter-local state fields */
+	state: Record<string, Expr>
+}
+
+const encounterCtx: EncounterCallbackCtx = {
+	state: dynProxy('encounter.state'),
+}
+
+type EffectArrayInput = ((ctx: EncounterCallbackCtx) => Effect | Effect[]) | Effect[]
+
+function resolveEffectArray(input: EffectArrayInput | undefined): Effect[] | undefined {
+	if (input === undefined) return undefined
+	if (typeof input === 'function') {
+		const result = input(encounterCtx)
+		return Array.isArray(result) ? result : [result]
+	}
+	return input
+}
 
 export interface EncounterOpts {
 	id: string
@@ -23,9 +55,11 @@ export interface EncounterOpts {
 	modeTags?: ModeTag[]
 	actors?: Actor[]
 	initialState?: Record<string, StateInit>
-	intro?: Effect[]
+	/** intro effects. callback receives encounter state */
+	intro?: EffectArrayInput
 	choices?: Choice[]
-	outro?: Effect[]
+	/** outro effects. callback receives encounter state */
+	outro?: EffectArrayInput
 	passiveListeners?: Listener[]
 }
 
@@ -51,9 +85,9 @@ export function Encounter(opts: EncounterOpts): EncounterSchema {
 			modeTags: opts.modeTags,
 			actors: opts.actors,
 			initialState: opts.initialState,
-			intro: opts.intro,
+			intro: resolveEffectArray(opts.intro),
 			choices: opts.choices,
-			outro: opts.outro,
+			outro: resolveEffectArray(opts.outro),
 			passiveListeners: opts.passiveListeners,
 		},
 		encounterRenames,

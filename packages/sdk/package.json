@@ -22,6 +22,10 @@
 		"./locales": {
 			"types": "./dist/locales/index.d.ts",
 			"import": "./dist/locales/index.js"
+		},
+		"./raw": {
+			"types": "./dist/raw.d.ts",
+			"import": "./dist/raw.js"
 		}
 	},
 	"files": [
@@ -31,7 +35,7 @@
 	],
 	"scripts": {
 		"build": "bun run build:js && bun run build:types && bun run build:schema && bun run build:context",
-		"build:js": "bun build ./src/index.ts ./src/schema/index.ts ./src/pack/index.ts ./src/locales/index.ts --outdir ./dist --target node --format esm --external @fluent/syntax --external jszip --external zod",
+		"build:js": "bun build ./src/index.ts ./src/raw.ts ./src/schema/index.ts ./src/pack/index.ts ./src/locales/index.ts --outdir ./dist --target node --format esm --external @fluent/syntax --external jszip --external zod",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"build:schema": "bun run scripts/emit-json-schema.ts",
 		"build:dts-bundle": "dts-bundle-generator --config dts-bundle-generator.config.json",

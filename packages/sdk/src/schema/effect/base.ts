@@ -19,6 +19,7 @@ export type Effect =
 			buff: string
 			stacks: unknown
 			duration: unknown
+			snapshot?: Record<string, unknown>
 	  }
 	| {
 			do: 'apply_debuff'
@@ -26,8 +27,11 @@ export type Effect =
 			debuff: string
 			stacks: unknown
 			duration: unknown
+			snapshot?: Record<string, unknown>
 	  }
 	| { do: 'add_damage_modifier'; modifier: { kind: string; value: unknown } }
+	| { do: 'add_buff_state'; key: string; value: unknown }
+	| { do: 'set_buff_state'; key: string; value: unknown }
 	// cards
 	| { do: 'reduce_ally_cooldown'; target: string; amount: unknown }
 	| { do: 'reset_ally_card_cooldown'; target: string }

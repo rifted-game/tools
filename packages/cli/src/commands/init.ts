@@ -238,7 +238,7 @@ export const initCommand = defineCommand({
 		mkdirSync(join(targetDir, 'locales'), { recursive: true })
 
 		// common files
-		writeFileSync(join(targetDir, 'src', 'mod.ts'), MOD_TEMPLATE)
+		writeFileSync(join(targetDir, 'src', 'index.ts'), MOD_TEMPLATE)
 		writeFileSync(join(targetDir, 'locales', 'en.ftl'), STARTER_FTL)
 		writeFileSync(join(targetDir, 'tsconfig.json'), TSCONFIG_TEMPLATE)
 		writeFileSync(join(targetDir, 'package.json'), PACKAGE_JSON_TEMPLATE(args.name))
@@ -260,7 +260,7 @@ export const initCommand = defineCommand({
 		}
 
 		console.log(`\n${pc.green('✓')} Created ${pc.bold(args.name)}`)
-		console.log(`  ${pc.dim('src/mod.ts')}        mod entry point`)
+		console.log(`  ${pc.dim('src/index.ts')}       mod entry point`)
 		console.log(`  ${pc.dim('locales/en.ftl')}    starter strings`)
 		console.log(`  ${pc.dim('assets/')}           sprites and sounds`)
 		console.log(`  ${pc.dim('biome.json')}        formatter config`)

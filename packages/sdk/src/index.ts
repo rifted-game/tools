@@ -1,30 +1,32 @@
 // public api for @rifted/sdk
 
-// dsl primitives
+// entity builders
 export * from './builders/actor'
 export * from './builders/animation'
-// entity builders
 export * from './builders/asset'
 export * from './builders/buff'
 export * from './builders/card'
 export * from './builders/choice'
-export * from './builders/condition'
+// escape hatches for expressions not covered by $ fluent API
+export { CondFormula } from './builders/condition'
 export * from './builders/effect'
 export * from './builders/encounter'
 export * from './builders/enemy'
 export * from './builders/file'
 export * from './builders/intent'
-export * from './builders/listener'
 export * from './builders/location'
 export * from './builders/match-mode'
 export * from './builders/modifier'
+export * from './builders/modifier-presets'
 export * from './builders/phase'
 export * from './builders/relic'
 export * from './builders/summon'
 export * from './builders/text-variants'
-export * from './builders/value'
-// high-level helpers
+export { Formula } from './builders/value'
+
+// high-level helpers ($, Dmg, Block, etc.)
 export * from './helpers'
+
 // localization key convention
 export * from './locales'
 export * from './pkg'
@@ -61,6 +63,7 @@ export type {
 	WinCondition,
 } from './schema/enums'
 export type { ConditionalIntent, Intent, IntentPattern } from './schema/intent'
+export type { Listener } from './schema/listener'
 export type { LocaleFile } from './schema/locale'
 export type { Text } from './schema/primitives'
 export type { StateInit } from './schema/state'

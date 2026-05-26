@@ -1,5 +1,3 @@
-export * from './condition'
+export { $, type CondExpr, type Expr } from './dollar'
 export * from './effect'
 export * from './intent'
-export * from './listener'
-export * from './value'

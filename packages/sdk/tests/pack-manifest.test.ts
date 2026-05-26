@@ -35,7 +35,7 @@ describe('pack/manifest', () => {
 			dependencies: {},
 			kind: 'content',
 			translates: null,
-			bundle_hash: 'sha256:' + 'a'.repeat(64),
+			bundle_hash: `sha256:${'a'.repeat(64)}`,
 			files: { 'gcf.json': { size: 100, sha256: 'a'.repeat(64) } },
 			summary: buildSummary({ locales: [{ lang: 'en' }] } as any),
 		}

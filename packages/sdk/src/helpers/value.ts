@@ -26,7 +26,8 @@ export function Scaled(param: string): Value {
 	return Scale(Get(`card.params.${param}`))
 }
 
-// ready-made value expressions for common context paths
+// ready-made value expressions for the most common context paths.
+// for the full typed path list use ctxPath from './ctx'.
 export const ctx = {
 	cardStack: Get('card.stack'),
 	cardCooldown: Get('card.cooldown'),
@@ -44,3 +45,7 @@ export const ctx = {
 	hostStack: Get('host.stack'),
 	modifierStack: Get('modifier.stack'),
 } as const
+
+// shorthand aliases for the most frequently used modifier/host values
+export const modStack = ctx.modifierStack
+export const hostStack = ctx.hostStack

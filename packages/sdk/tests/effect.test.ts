@@ -6,7 +6,8 @@ import { ApplyBuff, Damage, GainBlock, SelfDamage } from '../src/builders/effect
 import { Foreach, If, Let, Random, Repeat, Sequence } from '../src/builders/effect/composite'
 import { AddCoins, HealEffect } from '../src/builders/effect/run'
 import { Get } from '../src/builders/value'
-import { Block, ctx, Dmg, Param, Scaled } from '../src/helpers'
+import { Block, Dmg } from '../src/helpers'
+import { ctx, Param, Scaled } from '../src/helpers/value'
 import { Effect as EffectSchema } from '../src/schema/effect'
 
 // value DSL uses key-based shape: { get: 'path' } not { op: 'get', path }

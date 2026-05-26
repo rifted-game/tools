@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect } from 'bun:test'
 
 import '../src/schema/effect'
 
@@ -9,7 +9,8 @@ import {
 	IntentPatternConditional,
 	IntentPatternSequence,
 } from '../src/builders/intent'
-import { Dmg, Param } from '../src/helpers'
+import { Dmg } from '../src/helpers'
+import { Param } from '../src/helpers/value'
 import { Enemy as EnemySchema } from '../src/schema/enemy'
 
 // hp/maxHp use the Value DSL: number literal or { get: 'path' }

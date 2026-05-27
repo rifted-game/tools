@@ -1,5 +1,3 @@
-import { describe, expect, test } from 'bun:test'
-
 import { packZip, unpackZip } from '../src/pack/zip'
 
 describe('pack/zip', () => {

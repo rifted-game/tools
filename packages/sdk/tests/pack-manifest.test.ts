@@ -1,5 +1,3 @@
-import { describe, expect, test } from 'bun:test'
-
 import { buildSummary, computeBundleHash, Manifest, sha256 } from '../src/pack/manifest'
 
 describe('pack/manifest', () => {

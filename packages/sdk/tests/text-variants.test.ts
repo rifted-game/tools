@@ -1,5 +1,3 @@
-import { describe, expect, test } from 'bun:test'
-
 // ensure dsl-lazy registrations happen before parse
 import '../src/schema/dsl-lazy'
 import '../src/schema/value'

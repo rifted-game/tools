@@ -1,5 +1,3 @@
-import { describe, expect } from 'bun:test'
-
 // trigger effect registration before any parse
 import '../src/schema/effect'
 
@@ -66,10 +64,9 @@ describe('Card builder', () => {
 		expect(() => File({ cards: [card] })).not.toThrow()
 	})
 
-	test('modifier donor invariant — both present passes File validation', () => {
+	test('modifier donor invariant — asModifier sets is_modifier_donor true in output', () => {
 		const card = Card({
 			...BASE,
-			isModifierDonor: true,
 			asModifier: {
 				trigger: 'host_played',
 				listener: {

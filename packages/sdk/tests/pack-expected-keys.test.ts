@@ -1,5 +1,3 @@
-import { describe, expect, test } from 'bun:test'
-
 import { expectedKeysFromGcf } from '../src/pack/expected-keys'
 
 describe('pack/expected-keys', () => {

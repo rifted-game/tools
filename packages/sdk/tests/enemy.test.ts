@@ -1,5 +1,3 @@
-import { describe, expect } from 'bun:test'
-
 import '../src/schema/effect'
 
 import { Enemy } from '../src/builders/enemy'

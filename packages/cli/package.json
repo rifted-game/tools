@@ -1,6 +1,6 @@
 {
 	"name": "@rifted/cli",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "Command-line tools for building Rifted mods",
 	"type": "module",
 	"bin": {

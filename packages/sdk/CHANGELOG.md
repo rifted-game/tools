@@ -1,5 +1,11 @@
 # @rifted/sdk
 
+## 0.0.3
+
+### Patch Changes
+
+- Fix dependencies
+
 ## 0.0.2
 
 ### Patch Changes

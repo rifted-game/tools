@@ -19,7 +19,7 @@
 		"typecheck": "bun run --filter '*' typecheck",
 		"changeset": "changeset",
 		"version-packages": "changeset version",
-		"release": "bun run build && changeset publish",
+		"release": "bun run build && bun run scripts/publish.ts",
 		"prepare": "lefthook install"
 	},
 	"devDependencies": {

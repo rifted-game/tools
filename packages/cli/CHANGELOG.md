@@ -1,5 +1,13 @@
 # @rifted/cli
 
+## 0.0.3
+
+### Patch Changes
+
+- Fix dependencies
+- Updated dependencies
+  - @rifted/sdk@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes

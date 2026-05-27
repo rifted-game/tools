@@ -9,20 +9,20 @@ SDK and CLI for building [Rifted](https://github.com/rifted-game/rifted) mods.
 
 ## quick start
 
-\`\`\`bash
+```bash
 bun add -g @rifted/cli
 rifted init my-mod
 cd my-mod
 rifted build
-\`\`\`
+```
 
 ## development
 
-\`\`\`bash
+```bash
 bun install
 bun run build
 bun test
-\`\`\`
+```
 
 ## contributing
 

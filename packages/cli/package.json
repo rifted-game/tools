@@ -4,7 +4,7 @@
 	"description": "Command-line tools for building Rifted mods",
 	"type": "module",
 	"bin": {
-		"rifted": "./dist/cli.js"
+		"rifted": "dist/cli.js"
 	},
 	"main": "./dist/cli.js",
 	"publishConfig": {

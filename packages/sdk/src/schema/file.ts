@@ -43,6 +43,18 @@ const CONTENT_SECTIONS = [
 	'match_modes',
 ] as const
 
+// sections whose ids are namespaced (namespace:name format).
+// buffs are excluded - they use bare ids, with the namespace coming from package
+const NAMESPACED_ID_SECTIONS = [
+	'cards',
+	'relics',
+	'enemies',
+	'summons',
+	'encounters',
+	'locations',
+	'match_modes',
+] as const
+
 export const File = z
 	.object({
 		format_version: z.literal(1),
@@ -60,33 +72,81 @@ export const File = z
 	})
 	.strict()
 	.superRefine((f, ctx) => {
-		const hasContent = CONTENT_SECTIONS.some(k => (f as any)[k] !== undefined)
-		const hasLocales = f.locales !== undefined
-		const isTranslation = (f.package?.translates?.length ?? 0) > 0
-
-		if (isTranslation) {
-			if (hasContent) {
-				ctx.addIssue({
-					code: 'custom',
-					message:
-						'translation mods (package.translates) cannot declare content sections, only locales',
-				})
-			}
-			if (!hasLocales) {
-				ctx.addIssue({
-					code: 'custom',
-					message: 'translation mods must declare at least one locale file',
-				})
-			}
+		if (isTranslationMod(f)) {
+			validateTranslationMod(f, ctx)
 			return
 		}
-
-		if (!hasContent && !hasLocales) {
-			ctx.addIssue({
-				code: 'custom',
-				message: 'gcf file must contain at least one content section or locales',
-			})
-		}
+		validateContentMod(f, ctx)
+		validateNamespacePrefixes(f, ctx)
 	})
 
 export type File = z.infer<typeof File>
+
+// ---------------------------------------------------------------------------
+// mode detection
+// ---------------------------------------------------------------------------
+
+function isTranslationMod(f: any): boolean {
+	return (f.package?.translates?.length ?? 0) > 0
+}
+
+function hasContentSections(f: any): boolean {
+	return CONTENT_SECTIONS.some(k => f[k] !== undefined)
+}
+
+// ---------------------------------------------------------------------------
+// translation-mod rules
+// ---------------------------------------------------------------------------
+
+function validateTranslationMod(f: any, ctx: z.RefinementCtx): void {
+	if (hasContentSections(f)) {
+		ctx.addIssue({
+			code: 'custom',
+			message:
+				'translation mods (package.translates) cannot declare content sections, only locales',
+		})
+	}
+	if (f.locales === undefined) {
+		ctx.addIssue({
+			code: 'custom',
+			message: 'translation mods must declare at least one locale file',
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// content-mod rules
+// ---------------------------------------------------------------------------
+
+function validateContentMod(f: any, ctx: z.RefinementCtx): void {
+	if (!hasContentSections(f) && f.locales === undefined) {
+		ctx.addIssue({
+			code: 'custom',
+			message: 'gcf file must contain at least one content section or locales',
+		})
+	}
+}
+
+// every namespaced entity id must be prefixed with the declared package namespace.
+// catches the common mistake of Pkg('foo') + package.namespace = 'bar'
+function validateNamespacePrefixes(f: any, ctx: z.RefinementCtx): void {
+	const ns = f.package?.namespace
+	if (!ns) return
+
+	const expectedPrefix = `${ns}:`
+
+	for (const section of NAMESPACED_ID_SECTIONS) {
+		const items = f[section] as Array<{ id: string }> | undefined
+		if (!items) continue
+
+		for (let i = 0; i < items.length; i++) {
+			if (!items[i].id.startsWith(expectedPrefix)) {
+				ctx.addIssue({
+					code: 'custom',
+					path: [section, i, 'id'],
+					message: `id "${items[i].id}" must start with "${expectedPrefix}" to match package.namespace`,
+				})
+			}
+		}
+	}
+}

@@ -18,7 +18,7 @@
 		"lint:fix": "biome check --write .",
 		"typecheck": "bun run --filter '*' typecheck",
 		"changeset": "changeset",
-		"version-packages": "changeset version",
+		"version-packages": "changeset version && bun install",
 		"release": "bun run build && bun run scripts/publish.ts",
 		"prepare": "lefthook install"
 	},

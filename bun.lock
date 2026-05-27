@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "rifted-sdk-monorepo",
+      "name": "@rifted/tools",
       "devDependencies": {
         "@biomejs/biome": "^2.0.0",
         "@changesets/cli": "^2.31.0",
@@ -16,9 +16,9 @@
     },
     "packages/cli": {
       "name": "@rifted/cli",
-      "version": "0.1.0",
+      "version": "0.0.3",
       "bin": {
-        "rifted": "./dist/cli.js",
+        "rifted": "dist/cli.js",
       },
       "dependencies": {
         "@clack/prompts": "^0.10.0",
@@ -37,7 +37,7 @@
     },
     "packages/sdk": {
       "name": "@rifted/sdk",
-      "version": "0.1.0",
+      "version": "0.0.3",
       "dependencies": {
         "@fluent/syntax": "^0.19.0",
         "jszip": "^3.10.1",

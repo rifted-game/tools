@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
 const packagesDir = join(process.cwd(), 'packages')
@@ -17,14 +17,40 @@ for (const dir of dirs) {
 		continue
 	}
 
-	console.log(`Publishing ${pkg.name}...`)
-	const result = spawnSync('bun', ['publish'], {
+	console.log(`Packing ${pkg.name}...`)
+	const packResult = spawnSync('bun', ['pm', 'pack', '--quiet'], {
 		cwd: pkgPath,
-		stdio: 'inherit',
 		shell: true,
 	})
 
-	if (result.status !== 0) {
+	if (packResult.status !== 0) {
+		console.error(`Failed to pack package: ${pkg.name}`)
+		process.exit(1)
+	}
+
+	const tarballName = packResult.stdout.toString().trim()
+	const tarballPath = join(pkgPath, tarballName)
+
+	console.log(`Publishing ${tarballName} via npm...`)
+	const publishResult = spawnSync(
+		'npm',
+		['publish', tarballPath, '--provenance', '--access', 'public'],
+		{
+			cwd: pkgPath,
+			stdio: 'inherit',
+			shell: true,
+		},
+	)
+
+	try {
+		if (existsSync(tarballPath)) {
+			unlinkSync(tarballPath)
+		}
+	} catch (err) {
+		console.warn(`Failed to clean up tarball ${tarballName}:`, err)
+	}
+
+	if (publishResult.status !== 0) {
 		console.error(`Failed to publish package: ${pkg.name}`)
 		process.exit(1)
 	}

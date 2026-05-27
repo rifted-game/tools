@@ -1,171 +1,152 @@
 import { z } from 'zod'
 
-export const Affinity = z.enum(['neutral', 'stacker', 'berserk', 'tank', 'support', 'cursed'])
-export type Affinity = z.infer<typeof Affinity>
+import { Asset } from './asset'
+import { Buff } from './buff'
+import { Card } from './card'
+import { Encounter } from './encounter'
+import { Enemy } from './enemy'
+import { LocaleFile } from './locale'
+import { Location } from './location'
+import { MatchMode } from './match-mode'
+import { Relic } from './relic'
+import { Summon } from './summon'
 
-export const Rarity = z.enum(['common', 'rare', 'legendary'])
-export type Rarity = z.infer<typeof Rarity>
+const PackageInfo = z
+	.object({
+		namespace: z.string().regex(/^[a-z][a-z0-9_]*$/, 'namespace must be snake_case'),
+		version: z.string().min(1),
+		name: z.string().optional(),
+		author: z.string().optional(),
+		description: z.string().optional(),
+		homepage: z.string().optional(),
+		license: z.string().optional(),
+		rifted_version: z.string().optional(),
+		dependencies: z.record(z.string(), z.string()).optional(),
+		// set to declare a translation mod; must list the namespaces being translated.
+		// translation mods may only contain locales, no content sections
+		translates: z
+			.array(z.string().regex(/^[a-z][a-z0-9_]*$/))
+			.min(1)
+			.optional(),
+	})
+	.strict()
 
-export const ScaleType = z.enum(['linear', 'exp', 'hyp', 'flat'])
-export type ScaleType = z.infer<typeof ScaleType>
+const CONTENT_SECTIONS = [
+	'assets',
+	'cards',
+	'buffs',
+	'relics',
+	'enemies',
+	'summons',
+	'encounters',
+	'locations',
+	'match_modes',
+] as const
 
-export const BuffKind = z.enum(['buff', 'debuff', 'neutral'])
-export type BuffKind = z.infer<typeof BuffKind>
+// sections whose ids are namespaced (namespace:name format).
+// buffs are excluded - they use bare ids, with the namespace coming from package
+const NAMESPACED_ID_SECTIONS = [
+	'cards',
+	'relics',
+	'enemies',
+	'summons',
+	'encounters',
+	'locations',
+	'match_modes',
+] as const
 
-export const IntentKind = z.enum([
-	'attack',
-	'defend',
-	'charging',
-	'curse',
-	'summon',
-	'buff',
-	'unknown',
-])
-export type IntentKind = z.infer<typeof IntentKind>
+export const File = z
+	.object({
+		format_version: z.literal(1),
+		package: PackageInfo.optional(),
+		locales: z.array(LocaleFile).min(1).optional(),
+		assets: z.array(Asset).min(1).optional(),
+		cards: z.array(Card).min(1).optional(),
+		buffs: z.array(Buff).min(1).optional(),
+		relics: z.array(Relic).min(1).optional(),
+		enemies: z.array(Enemy).min(1).optional(),
+		summons: z.array(Summon).min(1).optional(),
+		encounters: z.array(Encounter).min(1).optional(),
+		locations: z.array(Location).min(1).optional(),
+		match_modes: z.array(MatchMode).min(1).optional(),
+	})
+	.strict()
+	.superRefine((f, ctx) => {
+		if (isTranslationMod(f)) {
+			validateTranslationMod(f, ctx)
+			return
+		}
+		validateContentMod(f, ctx)
+		validateNamespacePrefixes(f, ctx)
+	})
 
-export const DamageModifierKind = z.enum(['add_to_base', 'multiply_final', 'override_scale'])
-export type DamageModifierKind = z.infer<typeof DamageModifierKind>
+export type File = z.infer<typeof File>
 
-export const EnemyTag = z.enum(['aggressive', 'passive', 'random', 'boss', 'elite', 'summon'])
-export type EnemyTag = z.infer<typeof EnemyTag>
+// ---------------------------------------------------------------------------
+// mode detection
+// ---------------------------------------------------------------------------
 
-export const SummonTag = z.enum(['summon', 'friendly', 'aggressive', 'passive'])
-export type SummonTag = z.infer<typeof SummonTag>
+function isTranslationMod(f: any): boolean {
+	return (f.package?.translates?.length ?? 0) > 0
+}
 
-export const EngineFlag = z.enum([
-	'block_card_play',
-	'block_lethal_damage',
-	'lock_agro',
-	'invisible',
-])
-export type EngineFlag = z.infer<typeof EngineFlag>
+function hasContentSections(f: any): boolean {
+	return CONTENT_SECTIONS.some(k => f[k] !== undefined)
+}
 
-export const ModeTag = z.enum(['pve', 'pvp'])
-export type ModeTag = z.infer<typeof ModeTag>
+// ---------------------------------------------------------------------------
+// translation-mod rules
+// ---------------------------------------------------------------------------
 
-export const Target = z.enum([
-	'self',
-	'selected_enemy',
-	'random_enemy',
-	'all_enemies',
-	'selected_ally',
-	'all_allies',
-	'random_ally',
-	'selected_ally_card',
-	'selected_ally_card_on_cooldown',
-	'selected_own_card',
-	'random_own_card',
-	'selected_ally_summon',
-	'random_ally_summon',
-	'all_ally_summons',
-	'lowest_hp_ally',
-	'selected_player',
-	'all_players',
-	'random_player',
-	'last_summoned_ally',
-	'host_card',
-	'host_owner',
-	'random_ally_card',
-])
-export type Target = z.infer<typeof Target>
+function validateTranslationMod(f: any, ctx: z.RefinementCtx): void {
+	if (hasContentSections(f)) {
+		ctx.addIssue({
+			code: 'custom',
+			message:
+				'translation mods (package.translates) cannot declare content sections, only locales',
+		})
+	}
+	if (f.locales === undefined) {
+		ctx.addIssue({
+			code: 'custom',
+			message: 'translation mods must declare at least one locale file',
+		})
+	}
+}
 
-export const MultiTarget = z.enum(['all_enemies', 'all_allies', 'all_ally_summons', 'all_players'])
-export type MultiTarget = z.infer<typeof MultiTarget>
+// ---------------------------------------------------------------------------
+// content-mod rules
+// ---------------------------------------------------------------------------
 
-export const ScreenKind = z.enum([
-	'prompt',
-	'card_offer',
-	'card_remove',
-	'deck_view',
-	'gamble',
-	'swap_table',
-	'rest',
-])
-export type ScreenKind = z.infer<typeof ScreenKind>
+function validateContentMod(f: any, ctx: z.RefinementCtx): void {
+	if (!hasContentSections(f) && f.locales === undefined) {
+		ctx.addIssue({
+			code: 'custom',
+			message: 'gcf file must contain at least one content section or locales',
+		})
+	}
+}
 
-export const AssetKind = z.enum([
-	'card_art',
-	'card_frame',
-	'buff_icon',
-	'relic_icon',
-	'background',
-	'node_icon',
-	'actor_portrait',
-	'sprite_sheet',
-	'sfx',
-	'music',
-	'ambient',
-])
-export type AssetKind = z.infer<typeof AssetKind>
+// every namespaced entity id must be prefixed with the declared package namespace.
+// catches the common mistake of Pkg('foo') + package.namespace = 'bar'
+function validateNamespacePrefixes(f: any, ctx: z.RefinementCtx): void {
+	const ns = f.package?.namespace
+	if (!ns) return
 
-export const TeamKind = z.enum(['human', 'ai'])
-export type TeamKind = z.infer<typeof TeamKind>
+	const expectedPrefix = `${ns}:`
 
-export const WinCondition = z.enum([
-	'all_acts_completed',
-	'last_team_standing',
-	'first_to_objective',
-	'highest_score',
-	'survive_n_turns',
-])
-export type WinCondition = z.infer<typeof WinCondition>
+	for (const section of NAMESPACED_ID_SECTIONS) {
+		const items = f[section] as Array<{ id: string }> | undefined
+		if (!items) continue
 
-export const NodeKind = z.enum([
-	'combat',
-	'elite',
-	'shop',
-	'altar',
-	'anomaly',
-	'swap_zone',
-	'encounter',
-	'boss',
-	'pvp',
-])
-export type NodeKind = z.infer<typeof NodeKind>
-
-export const ModifierTrigger = z.enum([
-	'host_played',
-	'host_damage_intent',
-	'host_drawn',
-	'host_cooldown_start',
-	'host_returned_from_cooldown',
-	'turn_start',
-	'turn_end',
-	'permanent',
-])
-export type ModifierTrigger = z.infer<typeof ModifierTrigger>
-
-export const RevealKind = z.enum([
-	'damage_taken',
-	'turn_n',
-	'enemy_died',
-	'block_broken',
-	'ally_buffed',
-])
-export type RevealKind = z.infer<typeof RevealKind>
-
-export const BuiltinEvent = z.enum([
-	'turn_start',
-	'turn_end',
-	'card_played',
-	'card_drawn',
-	'card_returned_from_cooldown',
-	'damage_intent_created',
-	'damage_dealt',
-	'damage_taken',
-	'block_gained',
-	'enemy_died',
-	'entity_died',
-	'player_hp_threshold',
-	'card_acquired_curse_bound',
-	'ally_summoned',
-	'card_modifier_applied',
-	'card_modifier_removed',
-	'encounter_opened',
-	'encounter_closed',
-	'choice_made',
-	'player_hp_changed',
-	'coins_changed',
-	'run_state_changed',
-])
-export type BuiltinEvent = z.infer<typeof BuiltinEvent>
+		for (let i = 0; i < items.length; i++) {
+			if (!items[i].id.startsWith(expectedPrefix)) {
+				ctx.addIssue({
+					code: 'custom',
+					path: [section, i, 'id'],
+					message: `id "${items[i].id}" must start with "${expectedPrefix}" to match package.namespace`,
+				})
+			}
+		}
+	}
+}

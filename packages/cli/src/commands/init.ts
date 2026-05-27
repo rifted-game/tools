@@ -47,7 +47,8 @@ export default File({
 
 const STARTER_FTL = `# my_mod english strings
 
-my_mod-card-example = Example Card
+my_mod-card-example =
+    .name = Example Card
     .description = Deal { $base } damage.
 `
 
@@ -146,8 +147,10 @@ indent_size = 4
 max_line_length = 100
 trim_trailing_whitespace = true
 
-[*.{js,ts,json}]
-quote_type = single
+# ftl files must use spaces - fluent does not accept tab indentation
+[*.ftl]
+indent_style = space
+indent_size = 4
 `
 
 // ------------------------------------------------------------
@@ -212,7 +215,7 @@ export const initCommand = defineCommand({
 			process.exit(1)
 		}
 
-		// resolve IDE choice — flag skips the prompt (useful in CI / scripts)
+		// resolve IDE choice - flag skips the prompt (useful in CI / scripts)
 		let ide: IdeChoice
 		if (args.ide === 'vscode' || args.ide === 'idea' || args.ide === 'none') {
 			ide = args.ide

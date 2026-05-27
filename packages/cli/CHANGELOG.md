@@ -1,5 +1,13 @@
 # @rifted/cli
 
+## 0.0.5
+
+### Patch Changes
+
+- Fixed Fluent format issues, now `scaffold` can edit hints based on card params
+- Updated dependencies
+  - @rifted/sdk@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes

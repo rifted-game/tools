@@ -240,7 +240,6 @@ type DollarCtx = {
 		hpPercent: Expr
 		block: Expr
 		coins: Expr
-		state: Record<string, Expr>
 	}
 	modifier: {
 		stack: Expr
@@ -359,7 +358,6 @@ export const $: DollarCtx = {
 		hpPercent: leaf('self.hp_percent'),
 		block: leaf('self.block'),
 		coins: leaf('self.coins'),
-		state: dynProxy('self.state'),
 	},
 	modifier: {
 		stack: leaf('modifier.stack'),

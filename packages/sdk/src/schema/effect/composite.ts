@@ -59,6 +59,7 @@ export const emitEventEffect = z
 		do: z.literal('emit_event'),
 		event: BareId,
 		payload: z.record(z.string(), Value).optional(),
+		tags: z.record(z.string(), z.string()).optional(),
 	})
 	.strict()
 

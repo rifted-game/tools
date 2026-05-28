@@ -1,5 +1,11 @@
 # @rifted/sdk
 
+## 0.0.7
+
+### Patch Changes
+
+- Fix types with intents
+
 ## 0.0.6
 
 ### Patch Changes

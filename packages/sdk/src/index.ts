@@ -14,6 +14,7 @@ export * from './builders/encounter'
 export * from './builders/enemy'
 export * from './builders/file'
 export * from './builders/intent'
+export * from './builders/listener'
 export * from './builders/location'
 export * from './builders/match-mode'
 export * from './builders/modifier'
@@ -62,8 +63,7 @@ export type {
 	TeamKind,
 	WinCondition,
 } from './schema/enums'
-export type { ConditionalIntent, Intent, IntentPattern } from './schema/intent'
-export type { Listener } from './schema/listener'
+export type { IntentPattern } from './schema/intent'
 export type { LocaleFile } from './schema/locale'
 export type { Text } from './schema/primitives'
 export type { StateInit } from './schema/state'

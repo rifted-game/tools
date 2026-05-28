@@ -1,5 +1,13 @@
 # @rifted/cli
 
+## 0.0.7
+
+### Patch Changes
+
+- Fix types with intents
+- Updated dependencies
+  - @rifted/sdk@0.0.7
+
 ## 0.0.6
 
 ### Patch Changes

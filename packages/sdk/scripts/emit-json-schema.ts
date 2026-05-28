@@ -33,7 +33,7 @@ reg.add(TextWithVariants, { id: 'text_variants' })
 
 const jsonSchema = z.toJSONSchema(File, {
 	metadata: reg,
-	target: 'draft-7',
+	target: 'draft-2020-12',
 })
 
 // z.refine() is not representable in JSON Schema — patch the "at least one
@@ -50,7 +50,7 @@ const contentSections = [
 	'match_modes',
 ]
 const patched = {
-	$schema: 'http://json-schema.org/draft-07/schema#',
+	$schema: 'https://json-schema.org/draft/2020-12/schema',
 	...jsonSchema,
 	anyOf: contentSections.map(k => ({ required: [k] })),
 }

@@ -11,6 +11,7 @@ const Team = z
 		max_size: z.number().int().min(1),
 		kind: TeamKind,
 		color: HexColor.optional(),
+		starting_deck: z.array(NamespacedId).min(1).optional(),
 	})
 	.strict()
 

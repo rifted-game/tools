@@ -1,5 +1,13 @@
 # @rifted/cli
 
+## 0.0.6
+
+### Patch Changes
+
+- Moved to draft 10 json schema
+- Updated dependencies
+  - @rifted/sdk@0.0.6
+
 ## 0.0.5
 
 ### Patch Changes

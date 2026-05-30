@@ -1,5 +1,22 @@
 # @rifted/cli
 
+## 0.1.1
+
+### Patch Changes
+
+- Fix `@rifted/cli` publishing a stale `@rifted/sdk` dependency pin.
+
+  `bun pm pack` reads workspace versions from `bun.lock`, whose workspace blocks
+  had gone stale (frozen at an old version), so published CLI tarballs since 0.0.4
+  pinned `@rifted/sdk` to an outdated version instead of the matching one. The
+  lockfile is regenerated so the internal dep resolves correctly, the release
+  script now asserts internal `@rifted/*` deps match the shipped version before
+  publishing (failing the release otherwise), and the two packages are marked
+  `fixed` in the changeset config so they always version together.
+
+- Updated dependencies
+  - @rifted/sdk@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

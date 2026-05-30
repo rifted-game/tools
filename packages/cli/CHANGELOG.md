@@ -1,5 +1,16 @@
 # @rifted/cli
 
+## 0.1.2
+
+### Patch Changes
+
+- fix(sdk): `Role.Card` now infers `P` from `params`, so `onPlay`/`render`/`self.*` are typed per card
+
+  `role.ts`'s `Card`/`cards` methods discarded the card's generic parameters, collapsing `params` to a bare `Record<string, number>` index signature — so `params.dmg` resolved to `Expr` but got no autocomplete and no typo-checking. The single-card `Role.Card` form is now generic and infers `P` (and `S`) from the spec, matching the bare `Card`/`pkg.Card` builders. The batch `Role.cards([...])` form stays untyped by design (TS can't infer a distinct `P` per array element through one generic) — use the single-card form when you want typed params.
+
+- Updated dependencies
+  - @rifted/sdk@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes

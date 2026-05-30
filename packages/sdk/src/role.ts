@@ -1,4 +1,5 @@
 import type { CardOpts } from './builders/card'
+import type { StateInitInput } from './helpers/state'
 import type { PkgBuilder } from './pkg'
 import type { Card as CardSchema } from './schema/card'
 import type { Affinity, ScaleType } from './schema/enums'
@@ -6,7 +7,10 @@ import type { Affinity, ScaleType } from './schema/enums'
 type RoleLockedFields = 'affinity' | 'scaleType'
 
 /** card spec within a role group — role provides affinity and scaleType */
-export type CardSpec = Omit<CardOpts, RoleLockedFields>
+export type CardSpec<
+	P extends Record<string, number> = Record<string, number>,
+	S extends Record<string, StateInitInput> = Record<string, StateInitInput>,
+> = Omit<CardOpts<P, S>, RoleLockedFields>
 
 interface RoleDef {
 	affinity: Affinity
@@ -15,13 +19,19 @@ interface RoleDef {
 	acceptsModifiers?: boolean
 }
 
-function build(pkg: PkgBuilder, def: RoleDef, spec: CardSpec): CardSchema {
-	return pkg.Card({
+function build<P extends Record<string, number>, S extends Record<string, StateInitInput>>(
+	pkg: PkgBuilder,
+	def: RoleDef,
+	spec: CardSpec<P, S>,
+): CardSchema {
+	return pkg.Card<P, S>({
 		...spec,
 		affinity: def.affinity,
 		scaleType: def.scaleType,
 		...(def.acceptsModifiers !== undefined && { acceptsModifiers: def.acceptsModifiers }),
-	})
+		// spread Omit<...> + re-add affinity/scaleType structurally = CardOpts<P,S>,
+		// but TS won't narrow it itself because of the conditional acceptsModifiers spread
+	} as CardOpts<P, S>)
 }
 
 /**
@@ -37,13 +47,22 @@ function build(pkg: PkgBuilder, def: RoleDef, spec: CardSpec): CardSchema {
 export function defineRole(def: RoleDef) {
 	return {
 		def,
-		/** build a batch of cards that share this role */
+		/**
+		 * Build a batch of cards that share this role.
+		 *
+		 * Note: params stay untyped (Record<string, number>) in the batch form —
+		 * TypeScript can't infer a distinct P per array element through a single
+		 * generic. Use the single-card `Card()` form below when you want typed params.
+		 */
 		cards(pkg: PkgBuilder, specs: CardSpec[]): CardSchema[] {
 			return specs.map(spec => build(pkg, def, spec))
 		},
-		/** build a single card — for legendaries and unique cases */
-		Card(pkg: PkgBuilder, spec: CardSpec): CardSchema {
-			return build(pkg, def, spec)
+		/** build a single card — P is inferred from the `params` field, so onPlay/render are typed */
+		Card<
+			P extends Record<string, number> = Record<string, number>,
+			const S extends Record<string, StateInitInput> = Record<string, StateInitInput>,
+		>(pkg: PkgBuilder, spec: CardSpec<P, S>): CardSchema {
+			return build<P, S>(pkg, def, spec)
 		},
 	}
 }

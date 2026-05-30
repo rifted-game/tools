@@ -1,3 +1,4 @@
+import { type IntentPatternInput, toIntentPattern } from '../builders/intent'
 import { Get } from '../builders/value'
 import { type Expr, wrapExpr } from '../helpers/expr'
 import { pack } from '../internal/pack'
@@ -5,7 +6,6 @@ import { wrapEffect } from '../internal/wrap-effect'
 import type { Condition } from '../schema/condition'
 import type { Effect } from '../schema/effect'
 import type { Target } from '../schema/enums'
-import type { IntentPattern } from '../schema/intent'
 import type { Listener } from '../schema/listener'
 import type { Phase as PhaseSchema } from '../schema/phase'
 
@@ -51,7 +51,7 @@ function resolveListeners(input: ListenerInput | undefined): Listener[] | undefi
 
 export interface PhaseOpts {
 	id: string
-	intentPattern: IntentPattern
+	intentPattern: IntentPatternInput
 	/** condition that transitions to the next phase. alias: until */
 	transitionCondition?: Condition
 	/** alias for transitionCondition — reads as "stay in this phase until ..." */
@@ -69,12 +69,12 @@ const phaseRenames = {
 	transitionEvent: 'transition_event',
 	onEnter: 'on_enter',
 	passiveListeners: 'passive_listeners',
-}
+} as const
 
 /** define a boss phase. transition_condition or transition_event triggers the next phase */
 export function Phase(opts: PhaseOpts): PhaseSchema {
 	return pack(
-		{ id: opts.id, intent_pattern: opts.intentPattern },
+		{ id: opts.id, intent_pattern: toIntentPattern(opts.intentPattern) },
 		{
 			transitionCondition: opts.transitionCondition ?? opts.until,
 			transitionEvent: opts.transitionEvent,

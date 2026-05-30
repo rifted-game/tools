@@ -101,6 +101,13 @@ export type AssetKind = z.infer<typeof AssetKind>
 export const TeamKind = z.enum(['human', 'ai'])
 export type TeamKind = z.infer<typeof TeamKind>
 
+// CombatMode - модель разрешения боя режима.
+// sequential: PvE по очереди (телеграф интентов врага), дефолт.
+// blind_commit: PvP-арена — обе стороны набирают карты вслепую, коммитят, затем
+// одновременное вскрытие (защита → пул урона → отложенная смерть → HP-тайбрейк).
+export const CombatMode = z.enum(['sequential', 'blind_commit'])
+export type CombatMode = z.infer<typeof CombatMode>
+
 export const WinCondition = z.enum([
 	'all_acts_completed',
 	'last_team_standing',

@@ -2,11 +2,11 @@ import { pack } from '../internal/pack'
 import type { AnimationSet } from '../schema/animation'
 import type { Enemy as EnemySchema } from '../schema/enemy'
 import type { EnemyTag } from '../schema/enums'
-import type { IntentPattern } from '../schema/intent'
 import type { Listener } from '../schema/listener'
 import type { Phase } from '../schema/phase'
 import type { Text } from '../schema/primitives'
 import type { Value } from '../schema/value'
+import { type IntentPatternInput, toIntentPattern } from './intent'
 
 interface EnemyBase {
 	id: string
@@ -23,7 +23,7 @@ interface EnemyBase {
 }
 
 interface EnemyFlat extends EnemyBase {
-	intentPattern: IntentPattern
+	intentPattern: IntentPatternInput
 	phases?: never
 }
 interface EnemyPhased extends EnemyBase {
@@ -41,7 +41,7 @@ const enemyRenames = {
 	animationSet: 'animation_set',
 	intentPattern: 'intent_pattern',
 	passiveListeners: 'passive_listeners',
-}
+} as const
 
 /** define an enemy. use `intentPattern` for normal enemies, `phases` for bosses */
 export function Enemy(opts: EnemyOpts): EnemySchema {
@@ -53,7 +53,10 @@ export function Enemy(opts: EnemyOpts): EnemySchema {
 			sfxAttack: opts.sfxAttack,
 			sfxDeath: opts.sfxDeath,
 			animationSet: opts.animationSet,
-			intentPattern: 'intentPattern' in opts ? opts.intentPattern : undefined,
+			intentPattern:
+				'intentPattern' in opts && opts.intentPattern !== undefined
+					? toIntentPattern(opts.intentPattern)
+					: undefined,
 			phases: 'phases' in opts ? opts.phases : undefined,
 			passiveListeners: opts.passiveListeners,
 		},

@@ -21,6 +21,27 @@ function dynProxy(prefix: string): Record<string, Expr> {
 	})
 }
 
+/**
+ * A state namespace that is both callable and indexable:
+ * - `$.run.state('my_mod:rage')` — call form, the only one that survives a
+ *   namespaced key (the `:` breaks dotted property access)
+ * - `$.run.state.foo` — property form, kept for bare keys and back-compat
+ */
+export type StateReader = ((key: string) => Expr) & Record<string, Expr>
+
+function stateReader(prefix: string): StateReader {
+	const fn = (key: string): Expr => leaf(`${prefix}.${key}`)
+	return new Proxy(fn, {
+		get(_t, key) {
+			if (typeof key !== 'string') return undefined
+			return leaf(`${prefix}.${key}`)
+		},
+		apply(_t, _this, args: unknown[]) {
+			return leaf(`${prefix}.${String(args[0])}`)
+		},
+	}) as unknown as StateReader
+}
+
 // --- event payload types (fields available inside $.on.* callbacks) ---
 
 export interface TurnStartEvent {
@@ -198,9 +219,16 @@ const onCtx = {
 		on('card_acquired_curse_bound', dynProxy('event'), cb, opts),
 	runStateChanged: (cb: Cb<Record<string, Expr>>, opts?: OnOpts) =>
 		on('run_state_changed', dynProxy('event'), cb, opts),
-	/** any event name — for custom or cross-mod events */
-	custom: (event: string, cb: Cb<Record<string, Expr>>, opts?: OnOpts) =>
-		on(event, dynProxy('event'), cb, opts),
+	/**
+	 * any event name — for custom or cross-mod events. The payload shape is
+	 * unknown to the type system by default; declare it to type the fields:
+	 * `$.on.custom<{ severity: Expr }>('margin_call', ({ event }) => Dmg(event.severity))`
+	 */
+	custom: <E extends Record<string, Expr> = Record<string, Expr>>(
+		event: string,
+		cb: Cb<E>,
+		opts?: OnOpts,
+	) => on(event, dynProxy('event') as E, cb, opts),
 }
 
 // --- $ context shape ---
@@ -273,7 +301,12 @@ type DollarCtx = {
 	run: {
 		floor: Expr
 		act: Expr
-		state: Record<string, Expr>
+		/** run-wide state. call with a namespaced key: `$.run.state('my_mod:rage')` */
+		state: StateReader
+	}
+	/** encounter-local state. call with a key: `$.encounter.state('harvested')` */
+	encounter: {
+		state: StateReader
 	}
 	event: {
 		side: Expr
@@ -391,7 +424,10 @@ export const $: DollarCtx = {
 	run: {
 		floor: leaf('run.floor'),
 		act: leaf('run.act'),
-		state: dynProxy('run.state'),
+		state: stateReader('run.state'),
+	},
+	encounter: {
+		state: stateReader('encounter.state'),
 	},
 	event: {
 		side: leaf('event.side'),

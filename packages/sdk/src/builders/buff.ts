@@ -1,3 +1,4 @@
+import { normalizeInitialState, type StateInitInput } from '../helpers/state'
 import { pack } from '../internal/pack'
 import type { Buff as BuffSchema } from '../schema/buff'
 import type { Affinity, BuffKind, EngineFlag } from '../schema/enums'
@@ -23,8 +24,12 @@ export interface BuffOpts {
 	engineFlags?: EngineFlag[]
 	/** immutable per-definition data shared across all instances of this buff */
 	params?: Record<string, number>
-	/** per-instance mutable state. each key seeds buff.state on apply */
-	initialState?: Record<string, { const: number } | { random_int: { min: number; max: number } }>
+	/**
+	 * Per-instance mutable state. Each key seeds `buff.state` on apply. A bare
+	 * number is shorthand for a constant; use `randInt(min, max)` for a random
+	 * roll, or the full `{ const, decay }` form when a field decays.
+	 */
+	initialState?: Record<string, StateInitInput>
 	passiveListeners?: Listener[]
 }
 
@@ -36,7 +41,7 @@ const buffRenames = {
 	engineFlags: 'engine_flags',
 	initialState: 'initial_state',
 	passiveListeners: 'passive_listeners',
-}
+} as const
 
 /** define a buff or debuff. listeners activate on the owner while duration > 0 */
 export function Buff(opts: BuffOpts): BuffSchema {
@@ -55,7 +60,7 @@ export function Buff(opts: BuffOpts): BuffSchema {
 		affinityHint: opts.affinityHint,
 		engineFlags: opts.engineFlags,
 		params: opts.params,
-		initialState: opts.initialState,
+		initialState: normalizeInitialState(opts.initialState),
 		passiveListeners: opts.passiveListeners,
 	}
 	return pack(required, optional, buffRenames) as unknown as BuffSchema

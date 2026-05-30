@@ -1,4 +1,6 @@
-import type { Actor as ActorSchema } from '../schema/actor'
+import type { z } from 'zod'
+
+import type { Actor as ActorSchema, Actor as ActorZod } from '../schema/actor'
 import type { ActorPosition } from '../schema/actor-position'
 import type { AnimationSet } from '../schema/animation'
 import type { Text } from '../schema/primitives'
@@ -11,10 +13,12 @@ export function Actor(opts: {
 	portrait?: string
 	animationSet?: AnimationSet
 }): ActorSchema {
-	const out: any = { id: opts.id }
-	if (opts.name !== undefined) out.name = opts.name
-	if (opts.position !== undefined) out.position = opts.position
-	if (opts.portrait !== undefined) out.portrait = opts.portrait
-	if (opts.animationSet !== undefined) out.animation_set = opts.animationSet
-	return out
+	// satisfies validates the snake_cased shape against the schema input statically
+	return {
+		id: opts.id,
+		...(opts.name !== undefined && { name: opts.name }),
+		...(opts.position !== undefined && { position: opts.position }),
+		...(opts.portrait !== undefined && { portrait: opts.portrait }),
+		...(opts.animationSet !== undefined && { animation_set: opts.animationSet }),
+	} satisfies z.input<typeof ActorZod> as ActorSchema
 }

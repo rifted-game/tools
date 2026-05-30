@@ -11,7 +11,7 @@ import type { MatchMode } from '../schema/match-mode'
 import type { Relic } from '../schema/relic'
 import type { Summon } from '../schema/summon'
 
-interface PackageOpts {
+export interface PackageOpts {
 	namespace: string
 	version: string
 	name?: string
@@ -29,7 +29,7 @@ interface PackageOpts {
 	translates?: string[]
 }
 
-interface FileOpts {
+export interface FileOpts {
 	package?: PackageOpts
 	locales?: LocaleFile[]
 	assets?: Asset[]
@@ -41,6 +41,12 @@ interface FileOpts {
 	encounters?: Encounter[]
 	locations?: Location[]
 	matchModes?: MatchMode[]
+	/**
+	 * Non-zero starting values for `run.state.<ns:key>`, seeded when a run begins.
+	 * Keys must be namespaced (`mod:key`). Unset keys already read as 0, so only
+	 * list keys that need a non-zero default. Build this with `pkg.initialRunState`.
+	 */
+	initialRunState?: Record<string, number>
 }
 
 const PKG_RENAMES: Record<string, string> = { riftedVersion: 'rifted_version' }
@@ -71,6 +77,7 @@ export function File(opts: FileOpts): FileSchema {
 	if (opts.encounters !== undefined) raw.encounters = opts.encounters
 	if (opts.locations !== undefined) raw.locations = opts.locations
 	if (opts.matchModes !== undefined) raw.match_modes = opts.matchModes
+	if (opts.initialRunState !== undefined) raw.initial_run_state = opts.initialRunState
 	// JSON round-trip strips non-serializable properties (e.g. methods on fluent Expr values)
 	// before zod's strict schema validation runs
 	return FileZod.parse(JSON.parse(JSON.stringify(raw))) as unknown as FileSchema

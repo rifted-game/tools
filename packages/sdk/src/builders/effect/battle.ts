@@ -65,6 +65,21 @@ export function AddDamageModifier(opts: { kind: DamageModifierKind; value: Value
 	}
 }
 
+/** add a flat amount to the base damage before final multipliers (kind: add_to_base) */
+export function AddBaseDamage(value: Value): Effect {
+	return AddDamageModifier({ kind: 'add_to_base', value })
+}
+
+/** multiply the final damage (kind: multiply_final). applied after base additions */
+export function MultiplyDamage(value: Value): Effect {
+	return AddDamageModifier({ kind: 'multiply_final', value })
+}
+
+/** replace the scaled base damage entirely (kind: override_scale). applied first */
+export function OverrideScale(value: Value): Effect {
+	return AddDamageModifier({ kind: 'override_scale', value })
+}
+
 /** atomically add to a buff state field. operates on the buff running the listener */
 export function AddBuffState(opts: { key: string; value: Value }): Effect {
 	return { do: 'add_buff_state', key: opts.key, value: opts.value }

@@ -1,11 +1,11 @@
 import { pack } from '../internal/pack'
 import type { AnimationSet } from '../schema/animation'
 import type { SummonTag } from '../schema/enums'
-import type { IntentPattern } from '../schema/intent'
 import type { Listener } from '../schema/listener'
 import type { Text } from '../schema/primitives'
 import type { Summon as SummonSchema } from '../schema/summon'
 import type { Value } from '../schema/value'
+import { type IntentPatternInput, toIntentPattern } from './intent'
 
 export interface SummonOpts {
 	id: string
@@ -14,7 +14,7 @@ export interface SummonOpts {
 	hp: Value
 	maxHp: Value
 	tags: SummonTag[]
-	intentPattern: IntentPattern
+	intentPattern: IntentPatternInput
 	icon?: string
 	sfxAttack?: string
 	sfxDeath?: string
@@ -29,7 +29,7 @@ const summonRenames = {
 	sfxDeath: 'sfx_death',
 	animationSet: 'animation_set',
 	passiveListeners: 'passive_listeners',
-}
+} as const
 
 /** define a summon — an ally or enemy that lives only during combat */
 export function Summon(opts: SummonOpts): SummonSchema {
@@ -39,7 +39,7 @@ export function Summon(opts: SummonOpts): SummonSchema {
 			hp: opts.hp,
 			max_hp: opts.maxHp,
 			tags: opts.tags,
-			intent_pattern: opts.intentPattern,
+			intent_pattern: toIntentPattern(opts.intentPattern),
 		},
 		{
 			name: opts.name,

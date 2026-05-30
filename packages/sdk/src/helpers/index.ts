@@ -1,3 +1,6 @@
 export { $, type CondExpr, type Expr } from './dollar'
 export * from './effect'
 export * from './intent'
+export * from './range'
+export * from './reveal'
+export * from './state'

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { ModeTag, TeamKind, WinCondition } from './enums'
+import { CombatMode, ModeTag, TeamKind, WinCondition } from './enums'
 import { BareId, HexColor, NamespacedId, Text } from './primitives'
 
 const Team = z
@@ -36,6 +36,7 @@ export const MatchMode = z
 		matchmaking_eligible: z.boolean().optional().default(false),
 		turn_time_limit_seconds: z.number().int().min(0).optional(),
 		mode_tags_visible: z.array(ModeTag).optional(),
+		combat_mode: CombatMode.optional().default('sequential'),
 	})
 	.strict()
 

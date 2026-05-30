@@ -8,6 +8,7 @@ import { Enemy } from './enemy'
 import { LocaleFile } from './locale'
 import { Location } from './location'
 import { MatchMode } from './match-mode'
+import { NamespacedStateKey } from './primitives'
 import { Relic } from './relic'
 import { Summon } from './summon'
 
@@ -69,6 +70,9 @@ export const File = z
 		encounters: z.array(Encounter).min(1).optional(),
 		locations: z.array(Location).min(1).optional(),
 		match_modes: z.array(MatchMode).min(1).optional(),
+		// non-zero starting values for run.state.<ns:key>, seeded at run start.
+		// unset keys already read as 0, so only declare non-zero defaults here.
+		initial_run_state: z.record(NamespacedStateKey, z.number()).optional(),
 	})
 	.strict()
 	.superRefine((f, ctx) => {

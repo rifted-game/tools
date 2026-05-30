@@ -3,79 +3,141 @@ import type { NodeKind } from '../schema/enums'
 import type { Location as LocationSchema } from '../schema/location'
 import type { Text } from '../schema/primitives'
 
-export function SpawnEntry(opts: {
+// --- input shapes (camelCase, with shorthand) -----------------------------
+
+export interface SpawnEntryInput {
 	id: string
 	weight: number
 	minFloor?: number
 	maxFloor?: number
-}) {
-	const out: any = { id: opts.id, weight: opts.weight }
-	if (opts.minFloor !== undefined) out.min_floor = opts.minFloor
-	if (opts.maxFloor !== undefined) out.max_floor = opts.maxFloor
-	return out
 }
 
-export function SpawnTable(opts: {
-	combat?: ReturnType<typeof SpawnEntry>[]
-	elite?: ReturnType<typeof SpawnEntry>[]
+export interface SpawnTableInput {
+	combat?: SpawnEntryInput[]
+	elite?: SpawnEntryInput[]
 	boss?: string
 	pvpMap?: string
-}) {
-	const out: any = {}
-	if (opts.combat !== undefined) out.combat = opts.combat
-	if (opts.elite !== undefined) out.elite = opts.elite
-	if (opts.boss !== undefined) out.boss = opts.boss
-	if (opts.pvpMap !== undefined) out.pvp_map = opts.pvpMap
-	return out
 }
 
-export function GuaranteedNode(opts: { floor: number; kind: NodeKind; icon?: string }) {
-	const out: any = { floor: opts.floor, kind: opts.kind }
-	if (opts.icon !== undefined) out.icon = opts.icon
-	return out
+export interface GuaranteedNodeInput {
+	floor: number
+	kind: NodeKind
+	icon?: string
 }
 
-export function MapConfig(opts: {
+export interface MapConfigInput {
 	floors: number
 	width: number
+	/** `[min, max]` path count — shorthand for pathsMin/pathsMax */
+	paths?: [number, number]
 	pathsMin?: number
 	pathsMax?: number
 	subgraphSymmetry?: 'symmetric' | 'asymmetric'
 	nodeWeights?: Record<string, number>
-	guaranteedNodes?: ReturnType<typeof GuaranteedNode>[]
+	/** floor → guaranteed node kind, e.g. `{ 6: 'shop', 12: 'boss' }` */
+	guaranteed?: Record<number, NodeKind>
+	guaranteedNodes?: GuaranteedNodeInput[]
+	/** pairwise tether config — `{ chance, max? }` */
+	tethers?: { chance: number; max?: number }
 	pairwiseTetherChance?: number
 	maxPairwiseTethersPerFloor?: number
-}) {
-	return pack(
-		{ floors: opts.floors, width: opts.width },
-		{
-			paths_min: opts.pathsMin,
-			paths_max: opts.pathsMax,
-			subgraph_symmetry: opts.subgraphSymmetry,
-			node_weights: opts.nodeWeights,
-			guaranteed_nodes: opts.guaranteedNodes,
-			pairwise_tether_chance: opts.pairwiseTetherChance,
-			max_pairwise_tethers_per_floor: opts.maxPairwiseTethersPerFloor,
-		},
-	)
 }
 
-export function BackgroundLayer(opts: { asset: string; scrollRate?: number; tint?: string }) {
-	const out: any = { asset: opts.asset }
-	if (opts.scrollRate !== undefined) out.scroll_rate = opts.scrollRate
-	if (opts.tint !== undefined) out.tint = opts.tint
+export interface BackgroundLayerInput {
+	asset: string
+	scrollRate?: number
+	tint?: string
+}
+
+export interface FloorVisualInput {
+	floors: number[]
+	layers: BackgroundLayerInput[]
+	music?: string
+	ambient?: string
+}
+
+// --- deprecated wrappers (identity passthroughs) --------------------------
+// Kept for back-compat. Prefer passing plain objects to Location directly.
+
+/** @deprecated pass a plain object to `Location.map` instead */
+export function MapConfig(opts: MapConfigInput): MapConfigInput {
+	return opts
+}
+/** @deprecated pass a plain object to `FloorVisual` entries instead */
+export function FloorVisual(opts: FloorVisualInput): FloorVisualInput {
+	return opts
+}
+/** @deprecated inline the layer object instead */
+export function BackgroundLayer(opts: BackgroundLayerInput): BackgroundLayerInput {
+	return opts
+}
+/** @deprecated pass a plain object to `Location.spawnTable` instead */
+export function SpawnTable(opts: SpawnTableInput): SpawnTableInput {
+	return opts
+}
+/** @deprecated inline the spawn entry object instead */
+export function SpawnEntry(opts: SpawnEntryInput): SpawnEntryInput {
+	return opts
+}
+/** @deprecated use the `guaranteed: { floor: kind }` shorthand instead */
+export function GuaranteedNode(opts: GuaranteedNodeInput): GuaranteedNodeInput {
+	return opts
+}
+
+// --- normalizers (camelCase + shorthand → snake_case json) ----------------
+
+function normalizeGuaranteed(g: GuaranteedNodeInput): Record<string, unknown> {
+	const out: Record<string, unknown> = { floor: g.floor, kind: g.kind }
+	if (g.icon !== undefined) out.icon = g.icon
 	return out
 }
 
-export function FloorVisual(opts: {
-	floors: number[]
-	layers: ReturnType<typeof BackgroundLayer>[]
-	music?: string
-	ambient?: string
-}) {
-	const out: any = { floors: opts.floors, layers: opts.layers }
-	if (opts.music !== undefined) out.music = opts.music
-	if (opts.ambient !== undefined) out.ambient = opts.ambient
+function normalizeMap(m: MapConfigInput): Record<string, unknown> {
+	const out: Record<string, unknown> = { floors: m.floors, width: m.width }
+	const pathsMin = m.paths?.[0] ?? m.pathsMin
+	const pathsMax = m.paths?.[1] ?? m.pathsMax
+	if (pathsMin !== undefined) out.paths_min = pathsMin
+	if (pathsMax !== undefined) out.paths_max = pathsMax
+	if (m.subgraphSymmetry !== undefined) out.subgraph_symmetry = m.subgraphSymmetry
+	if (m.nodeWeights !== undefined) out.node_weights = m.nodeWeights
+	const guaranteed = m.guaranteed
+		? Object.entries(m.guaranteed).map(([floor, kind]) => ({ floor: Number(floor), kind }))
+		: m.guaranteedNodes
+	if (guaranteed !== undefined) out.guaranteed_nodes = guaranteed.map(normalizeGuaranteed)
+	const tetherChance = m.tethers?.chance ?? m.pairwiseTetherChance
+	const tetherMax = m.tethers?.max ?? m.maxPairwiseTethersPerFloor
+	if (tetherChance !== undefined) out.pairwise_tether_chance = tetherChance
+	if (tetherMax !== undefined) out.max_pairwise_tethers_per_floor = tetherMax
+	return out
+}
+
+function normalizeLayer(l: BackgroundLayerInput): Record<string, unknown> {
+	const out: Record<string, unknown> = { asset: l.asset }
+	if (l.scrollRate !== undefined) out.scroll_rate = l.scrollRate
+	if (l.tint !== undefined) out.tint = l.tint
+	return out
+}
+
+function normalizeVisual(v: FloorVisualInput): Record<string, unknown> {
+	const out: Record<string, unknown> = { floors: v.floors, layers: v.layers.map(normalizeLayer) }
+	if (v.music !== undefined) out.music = v.music
+	if (v.ambient !== undefined) out.ambient = v.ambient
+	return out
+}
+
+function normalizeSpawnEntry(e: SpawnEntryInput): Record<string, unknown> {
+	const out: Record<string, unknown> = { id: e.id, weight: e.weight }
+	if (e.minFloor !== undefined) out.min_floor = e.minFloor
+	if (e.maxFloor !== undefined) out.max_floor = e.maxFloor
+	return out
+}
+
+function normalizeSpawnTable(t: SpawnTableInput): Record<string, unknown> {
+	const out: Record<string, unknown> = {}
+	if (t.combat !== undefined) out.combat = t.combat.map(normalizeSpawnEntry)
+	if (t.elite !== undefined) out.elite = t.elite.map(normalizeSpawnEntry)
+	if (t.boss !== undefined) out.boss = t.boss
+	if (t.pvpMap !== undefined) out.pvp_map = t.pvpMap
 	return out
 }
 
@@ -84,9 +146,9 @@ export interface LocationOpts {
 	/** When omitted resolves to `<namespace>-location-<name>` from ftl */
 	name?: Text
 	act: number
-	map: ReturnType<typeof MapConfig>
-	visuals: ReturnType<typeof FloorVisual>[]
-	spawnTable: ReturnType<typeof SpawnTable>
+	map: MapConfigInput
+	visuals: FloorVisualInput[]
+	spawnTable: SpawnTableInput
 	defaultMusic?: string
 	defaultAmbient?: string
 	nodeIcons?: Record<string, string>
@@ -115,9 +177,9 @@ export function Location(opts: LocationOpts): LocationSchema {
 		{
 			id: opts.id,
 			act: opts.act,
-			map: opts.map,
-			visuals: opts.visuals,
-			spawn_table: opts.spawnTable,
+			map: normalizeMap(opts.map),
+			visuals: opts.visuals.map(normalizeVisual),
+			spawn_table: normalizeSpawnTable(opts.spawnTable),
 		},
 		{
 			name: opts.name,

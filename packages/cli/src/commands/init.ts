@@ -8,48 +8,157 @@ import pc from 'picocolors'
 type IdeChoice = 'vscode' | 'idea' | 'none'
 
 // ------------------------------------------------------------
-// mod template
+// mod template — the canonical layout:
+//   src/pkg.ts        the package identity, nothing else
+//   src/state.ts      handles: run state + custom events (pure values)
+//   src/content/      content() composers, one per file/folder
+//   src/index.ts      composition root: pkg.use(...) only
 // ------------------------------------------------------------
 
-const MOD_TEMPLATE = `import { File, Locale, Pkg } from '@rifted/sdk'
+const PKG_TEMPLATE = `// The package identity. Nothing else lives here, so importing it from any
+// file is side-effect-free.
 
-const pkg = Pkg('my_mod')
+import { Pkg } from '@rifted/sdk'
 
-export default File({
-	package: {
-		namespace: 'my_mod',
-		version: '0.1.0',
-		name: 'My Mod',
-		author: 'you',
-		riftedVersion: '>=0.5.0',
-	},
-
-	locales: [
-		Locale({ lang: 'en', path: 'locales/en.ftl' }),
-	],
-
-	cards: [
-		pkg.Card({
-			id: 'example',
-			affinity: 'neutral',
-			rarity: 'common',
-			baseCooldown: 3,
-			scaleType: 'linear',
-			params: { base: 10 },
-			// name and description come from locales/en.ftl as
-			// my_mod-card-example.name / my_mod-card-example.description.
-			// params are available as ftl variables: { $base }
-			// run 'rifted locales:scaffold --lang en' to generate stubs
-		}),
-	],
+export const pkg = Pkg('__NS__', {
+	version: 1,
+	name: 'My Mod',
+	semver: '0.1.0',
+	authors: ['you'],
+	defaultLocale: 'en',
+	// depend on other mods to reference their content ("vanilla:berserk"):
+	// requires: { vanilla: 1 },
 })
 `
 
-const STARTER_FTL = `# my_mod english strings
+const STATE_TEMPLATE = `// Global handles: run state and custom events. Handles are pure values
+// (typed keys, no registration) — import them from any content file.
 
-my_mod-card-example =
-    .name = Example Card
-    .description = Deal { $base } damage.
+import { pkg } from './pkg'
+
+export const fury = pkg.playerState('fury')
+export const bloodSpilled = pkg.event('blood_spilled', { amount: 0 })
+`
+
+const CORE_TEMPLATE = `// Shared definitions many files reference. Definitions belong to a
+// composer (unlike handles) — this one mounts first.
+
+import { content } from '@rifted/sdk'
+
+export const core = content()
+
+export const reaver = core.affinity('reaver', {
+	name: 'Reaver',
+	art: { color: '#aa2222' },
+})
+`
+
+const CARDS_INDEX_TEMPLATE = `import { content } from '@rifted/sdk'
+
+import { attack } from './attack'
+
+// the folder aggregator: a composer that mounts its files
+export const cards = content()
+cards.use(attack)
+`
+
+const CARDS_ATTACK_TEMPLATE = `import { addStack, content, dmg, rand, selfDmg, when } from '@rifted/sdk'
+
+import { reaver } from '../core'
+import { bloodSpilled, fury } from '../../state'
+
+export const attack = content()
+
+// name/description compile into locales/*.ftl, never into gcf.json.
+// render bindings become fluent variables: { $dmg } in the description.
+// Refs are plain exports — import { strike } from this file anywhere.
+export const strike = attack.card('strike', {
+	name: 'Strike',
+	description: 'Deal { $dmg } damage and gain 1 fury.',
+	cooldown: 1,
+	scale: 'flat',
+	tags: ['attack'],
+	affinity: reaver,
+	params: { base: 6 },
+	render: ({ params }) => ({ dmg: params.base.scaled() }),
+	art: { icon: 'assets/cards/strike.png' },
+	onPlay({ params }) {
+		dmg('selected', params.base)
+		fury.inc(1)
+		bloodSpilled.emit({ amount: params.base })
+	},
+})
+
+attack.card('gamble', {
+	name: { en: 'Gamble', ru: 'Авантюра' },
+	description: 'Roll a die. High: spend 2 fury to strike hard. Low: bleed.',
+	cooldown: 2,
+	scale: 'hyp',
+	tags: ['attack'],
+	params: { base: 4 },
+	onPlay({ params }) {
+		const roll = rand(1, 6).as('roll')
+		when(roll.gt(3).and(fury.spend(2)), () => {
+			dmg('weakest_enemy', params.base.scaled().mul(roll))
+			addStack(1)
+		}).otherwise(() => {
+			selfDmg(roll.div(2).ceil())
+		})
+	},
+})
+`
+
+const WORLD_TEMPLATE = `// Enemies, encounters, the map — the run's world.
+
+import { content, intent, phase } from '@rifted/sdk'
+
+import { strike } from './cards/attack'
+
+export const world = content()
+
+export const goblin = world.enemy('goblin', {
+	name: 'Goblin',
+	hp: 16,
+	phases: [phase({ steps: [intent.attack(4)] })],
+})
+
+const goblinFight = world.encounter('goblin_fight', {
+	enemies: [goblin],
+	loot: { pool: [strike], offer: 1, picks: 1 },
+})
+
+world.map('act1', {
+	name: 'Act I',
+	floors: 6,
+	width: 5,
+	paths: 5,
+	fanout: 3,
+	rules: {
+		combat: { weight: 60 },
+		rest: { weight: 10, minFloor: 2, noAdjacent: true },
+		elite: { weight: 12, minFloor: 2, noAdjacent: true },
+	},
+	forceFloors: { [-1]: 'rest' },
+	content: { combat: [goblinFight] },
+	tethers: { pairwise: { chance: 0.8, min: 1, minFloor: 2 }, anchor: 'boss' },
+})
+`
+
+const ENTRY_TEMPLATE = `// Composition root: mount order = document order. Nothing is defined here.
+
+import { cards } from './content/cards'
+import { core } from './content/core'
+import { world } from './content/world'
+import { pkg } from './pkg'
+
+pkg.use(core, cards, world)
+
+export default pkg
+`
+
+const STARTER_FTL = `# Hand-written strings live here and always win over generated ones.
+# Run \`rifted locales:scaffold --lang <locale>\` to append stubs for
+# anything still untranslated.
 `
 
 // ------------------------------------------------------------
@@ -72,16 +181,17 @@ const PACKAGE_JSON_TEMPLATE = (name: string) => `{
 	"scripts": {
 		"dev": "rifted build --watch",
 		"build": "rifted build",
-		"validate": "rifted validate",
-		"pack": "rifted build && rifted pack",
-		"scaffold": "rifted build && rifted locales:scaffold --lang en",
+		"validate": "rifted build && rifted validate",
+		"pack": "rifted pack",
+		"scaffold": "rifted locales:scaffold --lang en",
 		"format": "biome format --write ."
 	},
 	"dependencies": {
-		"@rifted/sdk": "link:@rifted/sdk"
+		"@rifted/sdk": "^1.0.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.15"
+		"@biomejs/biome": "^2.4.15",
+		"@rifted/cli": "^1.0.0"
 	}
 }
 `
@@ -147,7 +257,7 @@ indent_size = 4
 max_line_length = 100
 trim_trailing_whitespace = true
 
-# ftl files must use spaces - fluent does not accept tab indentation
+# fluent files must use spaces - the parser rejects tab indentation
 [*.ftl]
 indent_style = space
 indent_size = 4
@@ -172,7 +282,7 @@ const VSCODE_EXTENSIONS = `{
 `
 
 // Disables the "unused global symbol" inspection for mod entry points
-// (export default File({...}) is consumed by the engine, not by other TS files)
+// (export default pkg is consumed by the CLI, not by other TS files)
 const IDEA_INSPECTION_PROFILE = `<component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
@@ -235,13 +345,29 @@ export const initCommand = defineCommand({
 			ide = answer as IdeChoice
 		}
 
+		// gcf namespace from the folder name: [a-z0-9_]+
+		const ns =
+			args.name
+				.toLowerCase()
+				.replace(/[^a-z0-9_]+/g, '_')
+				.replace(/^_+|_+$/g, '') || 'my_mod'
+
 		// create directory structure
-		mkdirSync(join(targetDir, 'src'), { recursive: true })
+		mkdirSync(join(targetDir, 'src', 'content', 'cards'), { recursive: true })
 		mkdirSync(join(targetDir, 'assets'), { recursive: true })
 		mkdirSync(join(targetDir, 'locales'), { recursive: true })
 
-		// common files
-		writeFileSync(join(targetDir, 'src', 'index.ts'), MOD_TEMPLATE)
+		// sources
+		const src = (...p: string[]) => join(targetDir, 'src', ...p)
+		writeFileSync(src('pkg.ts'), PKG_TEMPLATE.replaceAll('__NS__', ns))
+		writeFileSync(src('state.ts'), STATE_TEMPLATE)
+		writeFileSync(src('content', 'core.ts'), CORE_TEMPLATE)
+		writeFileSync(src('content', 'cards', 'attack.ts'), CARDS_ATTACK_TEMPLATE)
+		writeFileSync(src('content', 'cards', 'index.ts'), CARDS_INDEX_TEMPLATE)
+		writeFileSync(src('content', 'world.ts'), WORLD_TEMPLATE)
+		writeFileSync(src('index.ts'), ENTRY_TEMPLATE)
+
+		// config files
 		writeFileSync(join(targetDir, 'locales', 'en.ftl'), STARTER_FTL)
 		writeFileSync(join(targetDir, 'tsconfig.json'), TSCONFIG_TEMPLATE)
 		writeFileSync(join(targetDir, 'package.json'), PACKAGE_JSON_TEMPLATE(args.name))
@@ -262,11 +388,13 @@ export const initCommand = defineCommand({
 			)
 		}
 
-		console.log(`\n${pc.green('✓')} Created ${pc.bold(args.name)}`)
-		console.log(`  ${pc.dim('src/index.ts')}       mod entry point`)
-		console.log(`  ${pc.dim('locales/en.ftl')}    starter strings`)
-		console.log(`  ${pc.dim('assets/')}           sprites and sounds`)
-		console.log(`  ${pc.dim('biome.json')}        formatter config`)
+		console.log(`\n${pc.green('✓')} Created ${pc.bold(args.name)} ${pc.dim(`(namespace "${ns}")`)}`)
+		console.log(`  ${pc.dim('src/pkg.ts')}        package identity`)
+		console.log(`  ${pc.dim('src/state.ts')}      run state + custom events (pure handles)`)
+		console.log(`  ${pc.dim('src/content/')}      content() composers: core, cards/, world`)
+		console.log(`  ${pc.dim('src/index.ts')}      composition root (pkg.use)`)
+		console.log(`  ${pc.dim('locales/en.ftl')}    hand-written strings (win over generated)`)
+		console.log(`  ${pc.dim('assets/')}           sprites and sounds (hashed into .rmod)`)
 		console.log('')
 		console.log('Next steps:')
 		console.log(`  cd ${args.name} && bun install`)

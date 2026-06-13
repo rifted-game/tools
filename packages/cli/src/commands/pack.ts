@@ -1,35 +1,44 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join, relative, resolve } from 'node:path'
 
-import {
-	buildEntries,
-	buildSummary,
-	collectFiles,
-	computeBundleHash,
-	type FileEntry,
-	type Manifest,
-	packZip,
-	sha256,
-	validateLocales,
-} from '@rifted/sdk/pack'
+import { packRmod } from '@rifted/sdk/pack'
 import { defineCommand } from 'citty'
 import pc from 'picocolors'
+
+import { assembleLocales, loadMod } from '../load'
 
 function die(msg: string): never {
 	console.error(pc.red(msg))
 	process.exit(1)
 }
 
+/** collect assets/** recursively; archive paths are POSIX, relative to the mod root */
+function collectAssets(root: string): Record<string, Uint8Array> {
+	const assetsDir = join(root, 'assets')
+	const out: Record<string, Uint8Array> = {}
+	if (!existsSync(assetsDir)) return out
+	const walk = (dir: string) => {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const full = join(dir, entry.name)
+			if (entry.isDirectory()) walk(full)
+			else out[relative(root, full).replaceAll('\\', '/')] = readFileSync(full)
+		}
+	}
+	walk(assetsDir)
+	return out
+}
+
 export const packCommand = defineCommand({
 	meta: {
 		name: 'pack',
-		description: 'Build a distributable .rmod archive',
+		description: 'Build sources and pack a distributable .rmod archive',
 	},
 	args: {
-		gcf: {
-			type: 'string',
-			description: 'Path to built gcf.json (default: dist/gcf.json)',
-			default: 'dist/gcf.json',
+		entry: {
+			type: 'positional',
+			description: 'Entry file (default: src/index.ts)',
+			required: false,
+			default: 'src/index.ts',
 		},
 		out: {
 			type: 'string',
@@ -39,84 +48,40 @@ export const packCommand = defineCommand({
 	},
 	async run({ args }) {
 		const cwd = process.cwd()
-		const gcfPath = resolve(cwd, args.gcf)
+		console.log(`${pc.dim('Packing')} ${pc.cyan(args.entry)} …`)
 
-		console.log(`${pc.dim('Packing')} ${pc.cyan(args.gcf)} …`)
-
-		let gcfBuf: Buffer
-		let gcf: any
+		let loaded: Awaited<ReturnType<typeof loadMod>>
 		try {
-			gcfBuf = readFileSync(gcfPath)
-			gcf = JSON.parse(gcfBuf.toString('utf-8'))
+			loaded = await loadMod(resolve(cwd, args.entry))
 		} catch (err: any) {
-			die(`Failed to read ${args.gcf}: ${err.message}`)
+			die(`Build failed: ${err.message}`)
 		}
 
-		if (!gcf.package?.namespace || !gcf.package?.version) {
-			die('gcf.json package block must include namespace and version')
-		}
-		const { namespace, version } = gcf.package
+		const assets = collectAssets(cwd)
+		const locales = assembleLocales(cwd, loaded.locales)
+		const { data, manifest } = await packRmod({
+			gcf: loaded.doc,
+			name: loaded.meta.name,
+			version: loaded.meta.semver,
+			authors: [...loaded.meta.authors],
+			assets,
+			locales,
+		})
 
-		const files = collectFiles(cwd, ['assets', 'locales'])
-
-		for (const asset of gcf.assets ?? []) {
-			if (!files.has(asset.path)) die(`Asset declared in gcf but missing on disk: ${asset.path}`)
-		}
-		for (const locale of gcf.locales ?? []) {
-			if (!files.has(locale.path))
-				die(`Locale file declared in gcf but missing on disk: ${locale.path}`)
-		}
-
-		const report = validateLocales(gcf, cwd)
-		for (const w of report.warnings) console.warn(`${pc.yellow('warn')} ${w}`)
-		if (report.errors.length > 0) {
-			for (const e of report.errors) console.error(`${pc.red('error')} ${e}`)
-			die('Locale validation failed')
-		}
-
-		const fileEntries: Record<string, FileEntry> = {}
-		for (const [rel, abs] of files) {
-			const buf = readFileSync(abs)
-			fileEntries[rel] = { size: buf.byteLength, sha256: sha256(buf) }
-		}
-		fileEntries['gcf.json'] = { size: gcfBuf!.byteLength, sha256: sha256(gcfBuf!) }
-
-		const isTranslation = (gcf.package.translates?.length ?? 0) > 0
-		const manifest: Manifest = {
-			manifest_version: 1,
-			namespace,
-			version,
-			name: gcf.package.name ?? namespace,
-			author: gcf.package.author,
-			description: gcf.package.description,
-			homepage: gcf.package.homepage,
-			license: gcf.package.license,
-			rifted_version: gcf.package.rifted_version ?? '*',
-			dependencies: gcf.package.dependencies ?? {},
-			kind: isTranslation ? 'translation' : 'content',
-			translates: isTranslation ? gcf.package.translates : null,
-			bundle_hash: computeBundleHash(fileEntries),
-			files: fileEntries,
-			summary: buildSummary(gcf),
-		}
-
-		const entries = buildEntries(manifest, gcfBuf!, files)
-		const zipBuf = await packZip(entries)
-
-		const outPath = args.out
-			? resolve(cwd, args.out)
-			: resolve(cwd, `dist/${namespace}-${version}.rmod`)
+		const outPath = resolve(
+			cwd,
+			args.out ?? join('dist', `${manifest.namespace}-${manifest.version}.rmod`),
+		)
 		mkdirSync(resolve(outPath, '..'), { recursive: true })
-		writeFileSync(outPath, zipBuf)
+		writeFileSync(outPath, data)
 
-		const kb = (zipBuf.byteLength / 1024).toFixed(1)
-		console.log('')
-		console.log(`${pc.green('✓')} ${pc.bold(outPath)} ${pc.dim(`(${kb} kB)`)}`)
-		console.log(`  ${pc.dim('namespace:')}   ${namespace}`)
-		console.log(`  ${pc.dim('version:')}     ${version}`)
-		console.log(`  ${pc.dim('kind:')}        ${manifest.kind}`)
-		console.log(`  ${pc.dim('bundle_hash:')} ${manifest.bundle_hash}`)
-		console.log(`  ${pc.dim('files:')}       ${Object.keys(fileEntries).length}`)
-		console.log(`  ${pc.dim('locales:')}     ${manifest.summary.locales.join(', ') || '(none)'}`)
+		const kb = (data.byteLength / 1024).toFixed(1)
+		const assetCount = Object.keys(manifest.assets).length
+		const localeNames = Object.keys(manifest.locales ?? {})
+		const loc = localeNames.length > 0 ? ` · locales: ${localeNames.join(', ')}` : ''
+		console.log(
+			`${pc.green('✓')} ${pc.bold(relative(cwd, outPath))}` +
+				pc.dim(` (${kb} kB · ${assetCount} assets${loc} · ns ${manifest.namespace})`),
+		)
 	},
 })

@@ -1,185 +1,127 @@
-import { z } from 'zod'
+// Schema: engine fixtures pass, junk does not, op tables catch typos,
+// the JSON Schema 2020-12 emits
 
-// ensure all schemas are registered before running
-import '../src/schema/effect'
+import { expect, test } from 'bun:test'
+import { gcfDocument, toJsonSchema, validateDocument } from '../src/schema/index'
+import examplesFixture from './fixtures/examples.gcf.json'
+import vanillaFixture from './fixtures/vanilla.gcf.json'
 
-import { Condition } from '../src/schema/condition'
-import { Effect } from '../src/schema/effect'
-import { File } from '../src/schema/file'
-import { BareId, NamespacedId } from '../src/schema/primitives'
-import { Value } from '../src/schema/value'
-
-// value DSL: key-based, not op-based
-// { get: 'path' }, { add: [v1, v2] }, { scale: v }, { if: c, then: v, else: v }
-
-// condition DSL: key-based
-// { lt: [v1, v2] }, { and: [c1, c2] }, { not: c }
-
-describe('NamespacedId', () => {
-	test('valid ids', () => {
-		for (const id of ['core:strike', 'my_mod:big_boss', 'a1:b2']) {
-			expect(() => NamespacedId.parse(id)).not.toThrow()
-		}
-	})
-
-	test('invalid ids', () => {
-		for (const id of ['strike', ':strike', 'core:', 'Core:Strike', 'core:Strike', '']) {
-			expect(() => NamespacedId.parse(id)).toThrow()
-		}
-	})
+test('engine fixtures are schema-valid', () => {
+	expect(() => validateDocument(examplesFixture)).not.toThrow()
+	expect(() => validateDocument(vanillaFixture)).not.toThrow()
 })
 
-describe('BareId', () => {
-	test('valid', () => {
-		for (const id of ['idle', 'on_attack', 'clip1']) {
-			expect(() => BareId.parse(id)).not.toThrow()
-		}
-	})
-
-	test('invalid — uppercase or colon', () => {
-		expect(() => BareId.parse('Idle')).toThrow()
-		expect(() => BareId.parse('core:idle')).toThrow()
-	})
+test('an unknown definition field is rejected', () => {
+	const doc = {
+		gcf: 1,
+		namespace: 'n',
+		cards: [{ id: 'a', coldown: 1 }],
+	}
+	expect(gcfDocument.safeParse(doc).success).toBe(false)
 })
 
-describe('Value schema', () => {
-	test('number literal', () => {
-		expect(() => Value.parse(10)).not.toThrow()
-		expect(() => Value.parse(0)).not.toThrow()
-	})
-
-	test('get path', () => {
-		expect(() => Value.parse({ get: 'card.params.base' })).not.toThrow()
-		expect(() => Value.parse({ get: 'player.hp' })).not.toThrow()
-	})
-
-	test('formula string', () => {
-		expect(() => Value.parse({ formula: 'floor(x / 2)' })).not.toThrow()
-	})
-
-	test('scale wrapper', () => {
-		expect(() => Value.parse({ scale: { get: 'card.params.base' } })).not.toThrow()
-	})
-
-	test('arithmetic operators', () => {
-		const v1: unknown = { get: 'card.params.x' }
-		const v2: unknown = 5
-		expect(() => Value.parse({ add: [v1, v2] })).not.toThrow()
-		expect(() => Value.parse({ sub: [v1, v2] })).not.toThrow()
-		expect(() => Value.parse({ mul: [v1, v2] })).not.toThrow()
-		expect(() => Value.parse({ div: [v1, v2] })).not.toThrow()
-		expect(() => Value.parse({ min: [v1, v2] })).not.toThrow()
-		expect(() => Value.parse({ max: [v1, v2] })).not.toThrow()
-	})
-
-	test('nested value expression', () => {
-		expect(() =>
-			Value.parse({
-				add: [{ mul: [{ get: 'card.params.x' }, 2] }, { get: 'card.params.bonus' }],
-			}),
-		).not.toThrow()
-	})
+test('a watcher without hook or reveal is rejected', () => {
+	const doc = { gcf: 1, namespace: 'n', watchers: [{ id: 'w' }] }
+	expect(gcfDocument.safeParse(doc).success).toBe(false)
 })
 
-describe('Condition schema', () => {
-	const v1 = { get: 'player.hp' }
-	const v2 = { get: 'card.params.threshold' }
-
-	test('comparison operators', () => {
-		for (const op of ['lt', 'gt', 'lte', 'gte', 'eq', 'neq'] as const) {
-			expect(() => Condition.parse({ [op]: [v1, v2] })).not.toThrow()
-		}
-	})
-
-	test('formula condition', () => {
-		expect(() => Condition.parse({ formula: 'player.hp < 10' })).not.toThrow()
-	})
-
-	test('and / or', () => {
-		const c1 = { lt: [v1, v2] }
-		expect(() => Condition.parse({ and: [c1, c1] })).not.toThrow()
-		expect(() => Condition.parse({ or: [c1, c1] })).not.toThrow()
-	})
-
-	test('not', () => {
-		const c1 = { lt: [v1, v2] }
-		expect(() => Condition.parse({ not: c1 })).not.toThrow()
-	})
-
-	test('nested condition', () => {
-		const c1 = { lt: [v1, v2] }
-		expect(() =>
-			Condition.parse({
-				and: [{ not: c1 }, { gt: [v2, v1] }],
-			}),
-		).not.toThrow()
-	})
+test('a watcher with both hook AND reveal is rejected', () => {
+	const doc = {
+		gcf: 1,
+		namespace: 'n',
+		watchers: [
+			{
+				id: 'w',
+				hook: { on: 'turn_end', do: ['noop'] },
+				reveal: { on: 'damage_taken', field: 'amount', threshold: 5 },
+			},
+		],
+	}
+	expect(gcfDocument.safeParse(doc).success).toBe(false)
 })
 
-describe('Effect discriminated union', () => {
-	test('battle effects parse', () => {
-		expect(() =>
-			Effect.parse({
-				do: 'damage',
-				target: 'selected_enemy',
-				amount: { get: 'card.params.base' },
-			}),
-		).not.toThrow()
-		expect(() => Effect.parse({ do: 'gain_block', amount: 5 })).not.toThrow()
-		expect(() =>
-			Effect.parse({ do: 'self_damage', amount: { get: 'card.params.dmg' } }),
-		).not.toThrow()
-	})
-
-	test('run effects parse', () => {
-		expect(() => Effect.parse({ do: 'heal', amount: { get: 'card.params.heal' } })).not.toThrow()
-		expect(() => Effect.parse({ do: 'add_coins', amount: 1 })).not.toThrow()
-	})
-
-	test('presentation effects parse', () => {
-		expect(() => Effect.parse({ do: 'emit_event', event: 'on_turn_start' })).not.toThrow()
-		expect(() => Effect.parse({ do: 'wait_for_input' })).not.toThrow()
-	})
-
-	test('sequence with one effect', () => {
-		expect(() =>
-			Effect.parse({
-				do: 'sequence',
-				effects: [{ do: 'damage', target: 'selected_enemy', amount: 5 }],
-			}),
-		).not.toThrow()
-	})
+test('a broken map definition (floors < 4) is rejected', () => {
+	const doc = {
+		gcf: 1,
+		namespace: 'n',
+		maps: [{ id: 'm', floors: 2, width: 3, paths: 1 }],
+	}
+	expect(gcfDocument.safeParse(doc).success).toBe(false)
 })
 
-describe('File schema', () => {
-	test('minimal valid file', () => {
-		const f = {
-			format_version: 1,
-			cards: [
-				{
-					id: 'test:x',
-					affinity: 'neutral',
-					rarity: 'common',
-					base_cooldown: 3,
-					scale_type: 'linear',
-					params: { base: 10 },
-				},
-			],
-		}
-		expect(() => File.parse(f)).not.toThrow()
-	})
+test('an encounter with loot but no offer/picks is rejected', () => {
+	const doc = {
+		gcf: 1,
+		namespace: 'n',
+		encounters: [{ id: 'e', enemies: ['x'], loot: ['a'] }],
+	}
+	expect(gcfDocument.safeParse(doc).success).toBe(false)
+})
 
-	test('file without content sections fails', () => {
-		expect(() => File.parse({ format_version: 1 })).toThrow()
-	})
+// --- op tables: hand-written documents fail with engine-grade errors ---
 
-	test('z.toJSONSchema does not throw', () => {
-		expect(() => z.toJSONSchema(File)).not.toThrow()
-	})
+function opError(onPlay: unknown): string {
+	try {
+		validateDocument({ gcf: 1, namespace: 'n', cards: [{ id: 'a', on_play: onPlay }] })
+		return ''
+	} catch (err) {
+		return (err as Error).message
+	}
+}
 
-	test('JSON schema output is an object', () => {
-		const schema = z.toJSONSchema(File)
-		expect(typeof schema).toBe('object')
-		expect(schema).toHaveProperty('type')
-	})
+test('a typoed effect op gets did-you-mean', () => {
+	const msg = opError(['dmage', 'selected', 6])
+	expect(msg).toContain('unknown effect op "dmage"')
+	expect(msg).toContain('did you mean "damage"')
+	expect(msg).toContain('cards[0].on_play')
+})
+
+test('wrong arity reports the signature', () => {
+	const msg = opError(['damage', 'selected'])
+	expect(msg).toContain('got 1 args')
+	expect(msg).toContain('damage(target, amount)')
+})
+
+test('an unknown target gets did-you-mean', () => {
+	const msg = opError(['damage', 'slected', 6])
+	expect(msg).toContain('unknown target "slected"')
+	expect(msg).toContain('did you mean "selected"')
+})
+
+test('an unknown state level gets did-you-mean', () => {
+	const msg = opError(['add_state', 'tem', 'x', 1])
+	expect(msg).toContain('unknown state level "tem"')
+	expect(msg).toContain('did you mean "team"')
+})
+
+test('a typoed value op inside a nested expression is found with its path', () => {
+	const msg = opError(['damage', 'selected', ['scal', 'card.params.base']])
+	expect(msg).toContain('unknown value op "scal"')
+	expect(msg).toContain('did you mean "scale"')
+})
+
+test('a typoed builtin event in a hook is rejected', () => {
+	expect(() =>
+		validateDocument({
+			gcf: 1,
+			namespace: 'n',
+			modifiers: [{ id: 'm', hooks: [{ on: 'card_playd', do: ['noop'] }] }],
+		}),
+	).toThrow(/unknown event "card_playd".*did you mean "card_played"/)
+})
+
+test('custom namespaced events pass', () => {
+	expect(() =>
+		validateDocument({
+			gcf: 1,
+			namespace: 'n',
+			watchers: [{ id: 'w', hook: { on: 'n:custom', do: ['noop'] } }],
+		}),
+	).not.toThrow()
+})
+
+test('the JSON Schema 2020-12 emits and declares its dialect', () => {
+	const schema = toJsonSchema()
+	expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema')
+	expect(JSON.stringify(schema)).toContain('namespace')
 })

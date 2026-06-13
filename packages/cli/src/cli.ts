@@ -2,17 +2,19 @@
 import { defineCommand, runMain } from 'citty'
 
 import { buildCommand } from './commands/build'
+import { diffCommand } from './commands/diff'
 import { initCommand } from './commands/init'
 import { inspectCommand } from './commands/inspect'
-import { localesListCommand } from './commands/locales-list'
+import { localesCheckCommand } from './commands/locales-check'
 import { localesScaffoldCommand } from './commands/locales-scaffold'
 import { packCommand } from './commands/pack'
+import { typegenCommand } from './commands/typegen'
 import { validateCommand } from './commands/validate'
 
 const main = defineCommand({
 	meta: {
 		name: 'rifted',
-		version: '0.1.0',
+		version: '1.0.0',
 		description: 'Build tools for Rifted mods',
 	},
 	subCommands: {
@@ -21,8 +23,10 @@ const main = defineCommand({
 		validate: validateCommand,
 		pack: packCommand,
 		inspect: inspectCommand,
+		diff: diffCommand,
+		typegen: typegenCommand,
 		'locales:scaffold': localesScaffoldCommand,
-		'locales:list': localesListCommand,
+		'locales:check': localesCheckCommand,
 	},
 })
 

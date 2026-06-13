@@ -1,6 +1,6 @@
 # @rifted/cli
 
-Command-line tools for building, validating and packing [Rifted](https://github.com/rifted-game/rifted) mods.
+Command-line tools for building, localizing and packing [Rifted](https://github.com/rifted-game/rifted) mods.
 
 Pairs with [`@rifted/sdk`](https://www.npmjs.com/package/@rifted/sdk) — the SDK
 provides the typed authoring API, the CLI handles the build and packaging
@@ -12,46 +12,55 @@ pipeline around it.
 bun add -g @rifted/cli
 ```
 
-Requires Node.js 20+ on the user's machine; Bun is recommended.
+Requires Node.js 20+; Bun is recommended.
 
 ## Quick start
 
 ```bash
 rifted init my-mod
-cd my-mod
-bun install
-
-rifted build      # compile src/index.ts -> dist/gcf.json
-rifted validate   # schema + locale checks
-rifted pack       # produce dist/my_mod-0.1.0.rmod
+cd my-mod && bun install
+rifted build --watch   # src/index.ts -> dist/gcf.json + dist/locales/*.ftl
+rifted pack            # dist/my_mod-0.1.0.rmod
 ```
-
-The `init` command scaffolds a working project with the SDK, an example card,
-a starter FTL file and editor configs. Pass `--ide vscode|idea|none` to skip
-the interactive prompt.
 
 ## Commands
 
-| Command                      | Purpose                                                           |
-|------------------------------|-------------------------------------------------------------------|
-| `rifted init [name]`         | Scaffold a new mod project                                        |
-| `rifted build [entry]`       | Compile mod source into `dist/gcf.json`. `--watch` for dev loop   |
-| `rifted validate [file]`     | Validate a built `gcf.json` against the schema, including locales |
-| `rifted pack [--out path]`   | Assemble a distributable `.rmod` archive                          |
-| `rifted inspect <file.rmod>` | Print the manifest of an existing `.rmod` without unpacking it    |
-| `rifted locales:scaffold`    | Generate FTL stubs for every localizable string in the built GCF  |
-| `rifted locales:list`        | List every FTL key the engine will look up at runtime             |
+| command | what it does |
+| --- | --- |
+| `rifted init [name]` | scaffold a new mod (multi-file entry, content modules, locales/, assets/) |
+| `rifted build [entry]` | run the entry through jiti, build the `Pkg`, validate, write `dist/gcf.json` and merged `dist/locales/*.ftl`; `--watch` rebuilds on change |
+| `rifted validate [file]` | validate a `gcf.json` against the GCF schema and op tables, with did-you-mean errors |
+| `rifted pack [entry]` | build + collect `assets/**` and locales + write a verified `.rmod` (sha256 manifest) |
+| `rifted inspect <file>` | summarize a `.rmod` or `gcf.json`: namespace, sections, locales, assets, hash verification |
+| `rifted diff <old> [new]` | semantic diff of two documents: added/removed definitions, balance tweaks as leaf changes (`cards/strike params.base: 6 → 8`) |
+| `rifted typegen <file>` | generate a typed refs module from another mod's `gcf.json`/`.rmod`: qualified `Ref`s per section, event handles with payload shapes and state handles scraped from its ops |
+| `rifted locales:scaffold --lang <l>` | append translator stubs (with context comments) for untranslated strings to `locales/<l>.ftl` |
+| `rifted locales:check [--lang <l>]` | translation coverage per locale with itemized gaps; exits 1 when anything is untranslated (CI-friendly) |
 
-Run any command with `--help` for full options.
+The mod entry is plain TypeScript that ends with `export default pkg`. No
+bundler required — the CLI executes it directly and serializes the result.
 
-## Typical workflow
+Reusing another mod's content needs only its public build artifact:
 
-1. `rifted init` to bootstrap the project
-2. Edit `src/index.ts` — declare cards, encounters, etc.
-3. `rifted build --watch` while iterating
-4. `rifted locales:scaffold --lang en` once new entities are added,
-   then fill in the `TODO` placeholders in `locales/en.ftl`
-5. `rifted pack` produces a `.rmod` file ready to share
+```bash
+rifted typegen path/to/vanilla.gcf.json   # → src/deps/vanilla.ts
+```
+
+```ts
+import * as vanilla from './deps/vanilla'
+
+pkg.card('zealot', {
+	affinity: vanilla.affinities.berserk,        // "vanilla:berserk" on the wire
+	onPlay() { applyModSelf(vanilla.modifiers.surge) },
+})
+```
+
+Add `requires: { vanilla: 1 }` to your `Pkg` options — the engine refuses to
+load your mod without its dependency and checks qualified references at load.
+
+Localization flow: inline `name`/`description` strings compile into generated
+fluent sections; anything in hand-written `locales/*.ftl` wins over them, so
+translators can take over any message without touching code.
 
 ## License
 

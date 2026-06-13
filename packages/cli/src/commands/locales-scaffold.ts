@@ -1,58 +1,65 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
-import { scaffoldFtl } from '@rifted/sdk/pack'
 import { defineCommand } from 'citty'
 import pc from 'picocolors'
+
+import { loadMod } from '../load'
 
 export const localesScaffoldCommand = defineCommand({
 	meta: {
 		name: 'locales:scaffold',
-		description: 'Generate or extend ftl files with stubs for missing localization keys',
+		description: 'Append stubs for untranslated strings to locales/<lang>.ftl',
 	},
 	args: {
+		entry: {
+			type: 'positional',
+			description: 'Entry file (default: src/index.ts)',
+			required: false,
+			default: 'src/index.ts',
+		},
 		lang: {
 			type: 'string',
+			alias: 'l',
 			required: true,
-			description: 'Language code, e.g. en, ru',
-		},
-		gcf: {
-			type: 'string',
-			description: 'Path to built gcf.json (default: dist/gcf.json)',
-			default: 'dist/gcf.json',
-		},
-		out: {
-			type: 'string',
-			description: 'Output ftl path (default: locales/<lang>.ftl)',
+			description: 'Target locale, e.g. en or ru',
 		},
 	},
-	run({ args }) {
+	async run({ args }) {
 		const cwd = process.cwd()
-		const gcfPath = resolve(cwd, args.gcf)
-		const ftlPath = args.out ? resolve(cwd, args.out) : resolve(cwd, `locales/${args.lang}.ftl`)
-
-		let gcf: object
+		let loaded: Awaited<ReturnType<typeof loadMod>>
 		try {
-			gcf = JSON.parse(readFileSync(gcfPath, 'utf-8'))
+			loaded = await loadMod(resolve(cwd, args.entry))
 		} catch (err: any) {
-			console.error(pc.red(`Failed to read ${args.gcf}: ${err.message}`))
-			console.error(pc.dim('Run `rifted build` first'))
+			console.error(pc.red('Build failed: ') + err.message)
+			process.exit(1)
+		}
+		if (!loaded.locales) {
+			console.error(pc.red('Entry does not expose localizable strings (export default a Pkg)'))
 			process.exit(1)
 		}
 
-		const existingFtl = existsSync(ftlPath) ? readFileSync(ftlPath, 'utf-8') : undefined
-		const result = scaffoldFtl({ gcf, existingFtl, lang: args.lang })
+		const dir = join(cwd, 'locales')
+		const file = join(dir, `${args.lang}.ftl`)
+		const existing = existsSync(file) ? readFileSync(file, 'utf-8') : undefined
 
-		if (result === (existingFtl ?? '')) {
-			console.log(`${pc.green('✓')} No new keys — ${pc.cyan(args.lang)} is up to date`)
+		const stubs = loaded.locales.scaffold(args.lang, existing)
+		if (stubs === null) {
+			console.log(
+				`${pc.green('✓')} ${pc.bold(`locales/${args.lang}.ftl`)} already covers every key`,
+			)
 			return
 		}
 
-		mkdirSync(dirname(ftlPath), { recursive: true })
-		writeFileSync(ftlPath, result, 'utf-8')
-
-		const action = existingFtl === undefined ? 'Created' : 'Extended'
-		console.log(`${pc.green('✓')} ${action} ${pc.bold(ftlPath)}`)
-		console.log(pc.dim('  Fill in the TODO entries before packing'))
+		mkdirSync(dir, { recursive: true })
+		if (existing !== undefined) {
+			appendFileSync(file, `\n${stubs}`)
+		} else {
+			writeFileSync(file, stubs)
+		}
+		const added = (stubs.match(/^[a-zA-Z][a-zA-Z0-9_-]* =$/gm) ?? []).length
+		console.log(
+			`${pc.green('✓')} ${pc.bold(`locales/${args.lang}.ftl`)}${pc.dim(` (+${added} messages — fill in the TODOs)`)}`,
+		)
 	},
 })

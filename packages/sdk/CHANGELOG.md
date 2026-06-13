@@ -1,5 +1,27 @@
 # @rifted/sdk
 
+## 1.0.0
+
+### Major Changes
+
+- Ground-up rewrite for the new GCF engine (s-expressions, hooks, watchers, modifiers). The old builder/listener API is gone.
+
+  **@rifted/sdk**
+
+  - Collector authoring surface: card bodies are plain code (`const` + `when()` + statement calls) compiled into GCF s-expressions at build time. Auto-`let` for `rand()`, `.pin()` snapshots, leak-tracking that fails the build on a `Cond` dropped into a JS `if`.
+  - `Expr`/`Cond` with phantom context capabilities, typed `params`/`state`/event payloads, the `f` formula template.
+  - Content composers (grammY-style): files declare into local `content()`, refs are plain exports, the entry mounts with `pkg.use()` — mount order is document order. Reference-integrity check catches a forgotten `use()` at build.
+  - Localization: `name`/`description` (`string | {locale: text} | {key: alias}`) compile into fluent files with translator auto-comments; hand-written `locales/*.ftl` always wins. Strings never enter `gcf.json`.
+  - GCF zod schema + op tables mirroring the engine loader (arity, argument kinds, did-you-mean), JSON Schema 2020-12 emitter, deterministic `.rmod` packing with sha256-hashed assets and locale files.
+  - Engine equivalence is enforced by tests: the engine's own `examples.gcf.json` and `vanilla.gcf.json` are authored in SDK style and must build deep-equal.
+
+  **@rifted/cli**
+
+  - `build` (gcf.json + merged `dist/locales/*.ftl`), `validate` (schema + op tables + ref integrity), `pack` (verified `.rmod`), `inspect`.
+  - New: `diff` (semantic document diff for balance review), `typegen` (typed refs/events/state bridge to another mod from its public `gcf.json`/`.rmod`), `locales:scaffold` and `locales:check` (translator stubs and CI coverage).
+  - `init` scaffolds the canonical multi-file layout (`pkg.ts` / `state.ts` / `content/` composers / composition-root `index.ts`).
+  - Removed: the fluent locale commands of the old engine-format toolchain.
+
 ## 0.1.2
 
 ### Patch Changes

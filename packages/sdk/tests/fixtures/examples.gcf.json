@@ -1,0 +1,148 @@
+{
+	"gcf": 1,
+	"namespace": "ex",
+	"version": 1,
+
+	"cards": [
+		{
+			"id": "lender",
+			"cooldown": 2,
+			"tags": ["scheme"],
+			"params": { "loan": 6 },
+			"on_play": [
+				["add_state", "player", "ex:coins", "card.params.loan"],
+				["add_state", "team", "ex:debt", ["mul", "card.params.loan", 1.5]],
+				["start_watcher", "interest"],
+				["emit", "ex:loan_taken", { "amount": "card.params.loan" }]
+			]
+		},
+
+		{
+			"id": "collector",
+			"cooldown": 3,
+			"tags": ["attack", "scheme"],
+			"on_play": [
+				["damage", "selected", ["min", "team.state.ex:debt", 30]],
+				["set_state", "team", "ex:debt", 0],
+				["finish_watcher", "interest"]
+			]
+		},
+
+		{
+			"id": "gambit",
+			"cooldown": 2,
+			"scale": "hyp",
+			"tags": ["attack"],
+			"params": { "base": 5 },
+			"on_play": [
+				"let",
+				{ "roll": ["rand_int", 1, 6] },
+				[
+					"if",
+					["and", ["gt", "let.roll", 4], ["spend_player_state", "ex:coins", 2]],
+					[
+						["damage", "weakest_enemy", ["mul", ["scale", "card.params.base"], "let.roll"]],
+						["add_card_stack", 1],
+						["emit", "ex:jackpot", { "roll": "let.roll" }]
+					],
+					["self_damage", ["ceil", ["div", "let.roll", 2]]]
+				]
+			]
+		},
+
+		{
+			"id": "oathblade",
+			"cooldown": 1,
+			"tags": ["attack"],
+			"params": { "base": 7, "oath": 15 },
+			"on_play": [["damage", "selected", "card.params.base"], ["start_card_watcher", "oath"]]
+		}
+	],
+
+	"modifiers": [
+		{
+			"id": "bloodrage",
+			"tags": ["attack"],
+			"duration": 3,
+			"decay": true,
+			"hooks": [
+				{
+					"on": "damage_intent",
+					"scope": "subject",
+					"do": [
+						"damage_add",
+						["mul", ["floor", ["mul", ["sub", 100, "self.hp_percent"], 0.1]], "mod.stack"]
+					]
+				}
+			]
+		}
+	],
+
+	"watchers": [
+		{
+			"id": "interest",
+			"hook": {
+				"on": "turn_end",
+				"when": ["gt", "team.state.ex:debt", 0],
+				"do": ["add_state", "team", "ex:debt", ["ceil", ["mul", "team.state.ex:debt", 0.1]]]
+			}
+		},
+
+		{
+			"id": "oath",
+			"hook": {
+				"on": "damage_dealt",
+				"do": [
+					["add_state", "card", "progress", "event.amount"],
+					[
+						"if",
+						["gte", "card.state.progress", "card.params.oath"],
+						[
+							["add_card_stack", 1],
+							["set_state", "card", "progress", 0],
+							["finish_watcher", "oath"]
+						]
+					]
+				]
+			}
+		}
+	],
+
+	"enemies": [
+		{
+			"id": "warden",
+			"hp": 60,
+			"hooks": [
+				{
+					"on": "damage_intent",
+					"scope": "targeted",
+					"when": ["gt", "battle.turn", 1],
+					"do": ["damage_mul", 0.75]
+				}
+			],
+			"phases": [
+				{
+					"name": "vigil",
+					"until": ["lt", "self.hp_percent", 50],
+					"steps": [
+						{ "kind": "charge" },
+						{ "kind": "attack", "amount": 6, "on_execute": ["damage", "selected", 6] }
+					]
+				},
+				{
+					"name": "frenzy",
+					"on_enter": [
+						["block", 8],
+						[
+							"summon",
+							12,
+							{ "kind": "attack", "amount": 3, "on_execute": ["damage", "selected", 3] }
+						]
+					],
+					"steps": [{ "kind": "attack", "amount": 10, "on_execute": ["damage", "selected", 10] }],
+					"hooks": [{ "on": "turn_end", "scope": "subject", "do": ["self_damage", 2] }]
+				}
+			]
+		}
+	]
+}

@@ -1,71 +1,130 @@
-// public api for @rifted/sdk
+// @rifted/sdk — the typed authoring surface for Rifted content.
+//
+// Card bodies are written as code: const + when + statement calls; the SDK
+// compiles them into a GCF document (s-expressions) that the engine turns
+// into closures. Strings (name/description) compile into fluent files.
+//
+//   const pkg = Pkg('ex')
+//   const coins = pkg.playerState('coins')
+//
+//   pkg.card('gambit', {
+//     name: 'Gambit',
+//     cooldown: 2, scale: 'hyp', tags: ['attack'],
+//     params: { base: 5 },
+//     onPlay({ params }) {
+//       const roll = rand(1, 6).as('roll')
+//       when(roll.gt(4).and(coins.spend(2)), () => {
+//         dmg('weakest_enemy', params.base.scaled().mul(roll))
+//         addStack(1)
+//       }).otherwise(() => selfDmg(roll.div(2).ceil()))
+//     },
+//   })
+//
+//   export default pkg
 
-// entity builders
-export * from './builders/actor'
-export * from './builders/animation'
-export * from './builders/asset'
-export * from './builders/buff'
-export * from './builders/card'
-export * from './builders/choice'
-// escape hatches for expressions not covered by $ fluent API
-export { CondFormula } from './builders/condition'
-export * from './builders/effect'
-export * from './builders/encounter'
-export * from './builders/enemy'
-export * from './builders/file'
-export * from './builders/intent'
-export * from './builders/listener'
-export * from './builders/location'
-export * from './builders/match-mode'
-export * from './builders/modifier'
-export * from './builders/modifier-presets'
-export * from './builders/phase'
-export * from './builders/relic'
-export * from './builders/summon'
-export * from './builders/text-variants'
-export { Formula } from './builders/value'
-
-// high-level helpers ($, Dmg, Block, etc.)
-export * from './helpers'
-
-// localization key convention
-export * from './locales'
-export * from './pkg'
-export type { CardSpec, Role } from './role'
-export { Berserk, Cursed, defineRole, Neutral, Stacker, Support, Tank } from './role'
-
-// types that don't conflict with builder function names.
-// for schema types that DO share a name with a builder function (Card, Buff,
-// File, etc.), import from '@rifted/sdk/schema' directly
-export type { ActorPosition } from './schema/actor-position'
-export type { AnimationSet } from './schema/animation'
-export type { Condition } from './schema/condition'
-export type { Effect } from './schema/effect'
+// the content composer and the package
+export { Content, content } from './content'
+// events
+export { EventHandle } from './core/event-handle'
+export type { BuiltinEventName, BuiltinEvents } from './core/events'
+// expressions and conditions
+export {
+	type Cap,
+	Cond,
+	type CondLike,
+	Expr,
+	type ExprLike,
+	get,
+	lit,
+	rand,
+} from './core/expr'
 export type {
-	Affinity,
-	AssetKind,
-	BuffKind,
-	BuiltinEvent,
-	DamageModifierKind,
-	EnemyTag,
-	EngineFlag,
-	IntentKind,
-	ModeTag,
-	ModifierTrigger,
-	MultiTarget,
-	NodeKind,
-	Rarity,
-	RevealKind,
+	BattlePaths,
+	CardPaths,
+	ModPaths,
+	Params,
+	PlayerPaths,
+	SelfPaths,
+	UnitPaths,
+} from './core/paths'
+// context paths
+export { StateEntry } from './core/paths'
+// the package
+export type { Ref, RefKind, RefLike } from './core/refs'
+// build errors
+export { RiftedBuildError } from './core/scope'
+// effect statements
+export {
+	addBaseDamage,
+	addStack,
+	applyModSelf,
+	applyModTarget,
+	block,
+	chance,
+	dmg,
+	finish,
+	heal,
+	mulDamage,
+	noop,
+	type Otherwise,
+	overrideDamage,
+	reduceCooldowns,
+	replayCard,
+	replayLast,
+	selfDmg,
+	setAffinity,
+	shrinkHand,
+	start,
+	startOn,
+	summon,
+	type TargetSel,
+	when,
+} from './effects'
+export { f } from './formula'
+// hooks, intents, phases
+export {
+	type EventSpec,
+	type HookCtx,
+	type HookDef,
+	type HookOpts,
+	type HookScope,
+	on,
+} from './hooks'
+export {
+	type IntentCtx,
+	type IntentDef,
+	intent,
+	type PhaseDef,
+	type PhaseSpec,
+	phase,
+} from './intent'
+// localization
+export type { LocalesBuild, LocEntry, LocText, MissingString } from './locales/index'
+export {
+	type ContentModule,
+	defineContent,
+	Pkg,
+	type PkgMeta,
+	type PkgOptions,
+	PlayerStateHandle,
+	RiftedPkg,
+} from './pkg'
+// definition specs and slot contexts
+export type {
+	AffinitySpec,
+	CardPlayCtx,
+	CardRenderCtx,
+	CardSpec,
+	DeferSpec,
+	EncounterSpec,
+	EnemySpec,
+	KindRuleSpec,
+	MapSpec,
+	ModifierSpec,
+	NodeKindName,
+	RevealSpec,
 	ScaleType,
-	ScreenKind,
-	SummonTag,
-	Target,
-	TeamKind,
-	WinCondition,
-} from './schema/enums'
-export type { IntentPattern } from './schema/intent'
-export type { LocaleFile } from './schema/locale'
-export type { Text } from './schema/primitives'
-export type { StateInit } from './schema/state'
-export type { TextWithVariants } from './schema/text-variants'
-export type { Value } from './schema/value'
+	TetherSpec,
+	WatcherCtx,
+	WatcherSpec,
+} from './specs'

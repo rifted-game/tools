@@ -1,50 +1,40 @@
-// raw DSL primitives — import from here when the typed $ helpers don't cover your case.
-// most mods won't need this.
+// Escape hatch: raw s-expressions 1:1 with GCF. For when the sugar falls
+// short or you need a cross-namespace path the typed contexts don't cover
 
-// raw condition builders
-export { And, CondFormula, Eq, Gt, Gte, Lt, Lte, Neq, Not, Or } from './builders/condition'
-// raw listener constructor
-export { Listener } from './builders/listener'
-// raw value builders
-export {
-	Add,
-	Div,
-	Formula,
-	Get,
-	Max,
-	Min,
-	Mul,
-	Scale,
-	Sub,
-	ValueIf,
-	ValueLet,
-} from './builders/value'
-// legacy condition shortcuts — replaced by $.*.lt() etc. in the main API
-export {
-	HasModifier,
-	HpAbove,
-	HpAtLeast,
-	HpAtMost,
-	HpBelow,
-	StackAtLeast,
-	StateAtLeast,
-	TurnReached,
-} from './helpers/condition'
+import { type Cap, Cond, Expr } from './core/expr'
+import { pushEffect, requireScope } from './core/scope'
 
-// legacy fluent value builder — replaced by $.* in the main API
-export { v } from './helpers/expr'
+export { get, lit } from './core/expr'
 
-// legacy event listener namespace — replaced by $.on.* in the main API
-export { On } from './helpers/listener'
-// legacy context shortcuts — replaced by $ in the main API
-export {
-	ctx,
-	ctxPath,
-	EncState,
-	hostStack,
-	modStack,
-	Param,
-	RunState,
-	Scaled,
-	State,
-} from './helpers/value-compat'
+/** raw value expression: value(['rand_int', 1, 6]) */
+export function value(node: unknown): Expr<Cap> {
+	return new Expr(node)
+}
+
+/** raw condition: cond(['has_tag', 'attack']) */
+export function cond(node: unknown): Cond<Cap> {
+	return new Cond(node)
+}
+
+/** raw effect statement: effect(['noop']) — pushed into the current scope */
+export function effect(node: unknown[]): void {
+	requireScope('raw effect()')
+	pushEffect(node)
+}
+
+/** "the context card has this tag" condition */
+export function hasTag(tag: string): Cond<'card'> {
+	return new Cond(['has_tag', tag])
+}
+
+/** "the acting player is attached to this affinity" (full "ns:name" for foreign ones) */
+export function attachedTo(affinity: string): Cond<Cap> {
+	return new Cond(['attached_to', affinity])
+}
+
+/** custom event by raw kind ("ns:name") with the payload as-is */
+export function emitEvent(kind: string, payload?: Record<string, unknown>): void {
+	requireScope('emitEvent()')
+	if (payload && Object.keys(payload).length > 0) pushEffect(['emit', kind, payload])
+	else pushEffect(['emit', kind])
+}

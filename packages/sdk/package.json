@@ -1,7 +1,7 @@
 {
 	"name": "@rifted/sdk",
-	"version": "0.1.2",
-	"description": "Typed builders for Rifted game content files",
+	"version": "1.0.0",
+	"description": "Typed authoring surface for Rifted game content (GCF)",
 	"type": "module",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
@@ -32,13 +32,13 @@
 			"types": "./dist/pack/index.d.ts",
 			"import": "./dist/pack/index.js"
 		},
-		"./locales": {
-			"types": "./dist/locales/index.d.ts",
-			"import": "./dist/locales/index.js"
-		},
 		"./raw": {
 			"types": "./dist/raw.d.ts",
 			"import": "./dist/raw.js"
+		},
+		"./locales": {
+			"types": "./dist/locales/index.d.ts",
+			"import": "./dist/locales/index.js"
 		}
 	},
 	"files": [
@@ -47,23 +47,20 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "bun run build:js && bun run build:types && bun run build:schema && bun run build:context",
-		"build:js": "bun build ./src/index.ts ./src/raw.ts ./src/schema/index.ts ./src/pack/index.ts ./src/locales/index.ts --outdir ./dist --target node --format esm --external @fluent/syntax --external jszip --external zod",
+		"build": "bun run build:js && bun run build:types && bun run build:schema",
+		"build:js": "bun build ./src/index.ts ./src/raw.ts ./src/schema/index.ts ./src/pack/index.ts ./src/locales/index.ts --outdir ./dist --target node --format esm --external jszip --external zod --external @fluent/syntax",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"build:schema": "bun run scripts/emit-json-schema.ts",
-		"build:dts-bundle": "dts-bundle-generator --config dts-bundle-generator.config.json",
-		"build:context": "bun run scripts/emit-context.ts",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
 		"test": "bun test"
 	},
 	"dependencies": {
-		"@fluent/syntax": "^0.19.0",
 		"jszip": "^3.10.1",
-		"zod": "^4.0.0"
+		"zod": "^4.0.0",
+		"@fluent/syntax": "^0.19.0"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
-		"dts-bundle-generator": "^9.5.1",
 		"typescript": "^5.7.0"
 	},
 	"engines": {

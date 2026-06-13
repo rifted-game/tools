@@ -1,0 +1,184 @@
+{
+	"gcf": 1,
+	"namespace": "vanilla",
+	"version": 1,
+
+	"affinities": [
+		{ "id": "berserk", "art": { "icon": "assets/affinity/berserk.png", "color": "#c0392b" } },
+		{ "id": "weaver", "art": { "icon": "assets/affinity/weaver.png", "color": "#2980b9" } }
+	],
+
+	"cards": [
+		{
+			"id": "strike",
+			"cooldown": 1,
+			"scale": "flat",
+			"tags": ["attack"],
+			"affinity": "berserk",
+			"params": { "base": 6 },
+			"render": { "dmg": ["scale", "card.params.base"] },
+			"art": {
+				"icon": "assets/cards/strike.png",
+				"sound": "assets/sfx/slash.ogg",
+				"glow": "#c0392b"
+			},
+			"on_play": ["damage", "selected", "card.params.base"]
+		},
+
+		{
+			"id": "jab",
+			"cooldown": 1,
+			"scale": "flat",
+			"tags": ["attack"],
+			"affinity": "berserk",
+			"params": { "base": 4 },
+			"render": { "dmg": ["scale", "card.params.base"] },
+			"on_play": ["damage", "selected", "card.params.base"]
+		},
+
+		{
+			"id": "bash",
+			"cooldown": 1,
+			"scale": "flat",
+			"tags": ["attack"],
+			"affinity": "berserk",
+			"params": { "base": 9 },
+			"render": { "dmg": ["scale", "card.params.base"] },
+			"on_play": ["damage", "selected", "card.params.base"]
+		},
+
+		{
+			"id": "guard",
+			"cooldown": 1,
+			"scale": "flat",
+			"affinity": "weaver",
+			"params": { "base": 5 },
+			"render": { "block": ["scale", "card.params.base"] },
+			"on_play": ["block", "card.params.base"]
+		},
+
+		{
+			"id": "ward",
+			"cooldown": 1,
+			"scale": "flat",
+			"affinity": "weaver",
+			"params": { "base": 8 },
+			"render": { "block": ["scale", "card.params.base"] },
+			"on_play": ["block", "card.params.base"]
+		},
+
+		{
+			"id": "emberseal",
+			"cooldown": 1,
+			"craft": true,
+			"as_modifier": "surge",
+			"affinity": "weaver",
+			"art": { "icon": "assets/cards/emberseal.png" },
+			"on_play": ["block", 0]
+		}
+	],
+
+	"modifiers": [
+		{
+			"id": "surge",
+			"render": { "echoes": "mod.stack" },
+			"hooks": [{ "on": "card_played", "do": ["replay_card", "mod.stack"] }]
+		}
+	],
+
+	"enemies": [
+		{
+			"id": "goblin",
+			"hp": 16,
+			"phases": [
+				{ "steps": [{ "kind": "attack", "amount": 4, "on_execute": ["damage", "selected", 4] }] }
+			]
+		},
+
+		{
+			"id": "slime",
+			"hp": 12,
+			"phases": [
+				{ "steps": [{ "kind": "attack", "amount": 3, "on_execute": ["damage", "selected", 3] }] }
+			]
+		},
+
+		{
+			"id": "brute",
+			"hp": 36,
+			"art": {
+				"sprite": "assets/mobs/brute.png",
+				"anim_attack": "brute_smash",
+				"sound_hit": "assets/sfx/smash.ogg"
+			},
+			"phases": [
+				{
+					"name": "wind-up",
+					"until": ["lt", "self.hp_percent", 40],
+					"steps": [
+						{ "kind": "charge" },
+						{ "kind": "attack", "amount": 7, "on_execute": ["damage", "selected", 7] }
+					]
+				},
+				{
+					"name": "rage",
+					"on_enter": ["block", 6],
+					"steps": [{ "kind": "attack", "amount": 9, "on_execute": ["damage", "selected", 9] }]
+				}
+			]
+		}
+	],
+
+	"encounters": [
+		{
+			"id": "goblin",
+			"enemies": ["goblin"],
+			"loot": ["bash", "ward", "jab"],
+			"loot_offer": 3,
+			"loot_picks": 1
+		},
+		{
+			"id": "slime",
+			"enemies": ["slime"],
+			"loot": ["bash", "ward", "jab"],
+			"loot_offer": 3,
+			"loot_picks": 1
+		},
+		{
+			"id": "brute",
+			"enemies": ["brute"],
+			"loot": ["bash", "ward", "jab"],
+			"loot_offer": 3,
+			"loot_picks": 2
+		}
+	],
+
+	"maps": [
+		{
+			"id": "act1",
+			"floors": 6,
+			"width": 5,
+			"paths": 6,
+			"start_fanout": 3,
+			"rules": {
+				"combat": { "weight": 60 },
+				"shop": { "weight": 10, "min_floor": 2, "no_adjacent": true },
+				"rest": { "weight": 8, "min_floor": 2, "no_adjacent": true },
+				"elite": { "weight": 14, "min_floor": 2, "no_adjacent": true }
+			},
+			"force_floors": { "-1": "rest" },
+			"content": {
+				"combat": ["goblin", "slime"],
+				"elite": ["brute"]
+			},
+			"tethers": {
+				"pairwise": true,
+				"chance": 0.9,
+				"min": 1,
+				"min_floor": 2,
+				"anchor": true,
+				"anchor_scene": "boss"
+			}
+		}
+	]
+}

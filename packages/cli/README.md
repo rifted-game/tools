@@ -40,14 +40,18 @@ rifted pack            # dist/my_mod-0.1.0.rmod
 The mod entry is plain TypeScript that ends with `export default pkg`. No
 bundler required — the CLI executes it directly and serializes the result.
 
-Reusing another mod's content needs only its public build artifact:
+Reusing another mod's content needs only its public build artifact. If the
+mod publishes a typed bridge package (see below) just install it; otherwise
+generate one locally from its `gcf.json`/`.rmod`:
 
 ```bash
 rifted typegen path/to/vanilla.gcf.json   # → src/deps/vanilla.ts
 ```
 
 ```ts
-import * as vanilla from './deps/vanilla'
+import * as vanilla from './deps/vanilla'   // or: from '@rifted/vanilla'
+
+const pkg = Pkg('mymod', { requires: [vanilla] })   // version pulled from the bridge
 
 pkg.card('zealot', {
 	affinity: vanilla.affinities.berserk,        // "vanilla:berserk" on the wire
@@ -55,8 +59,19 @@ pkg.card('zealot', {
 })
 ```
 
-Add `requires: { vanilla: 1 }` to your `Pkg` options — the engine refuses to
-load your mod without its dependency and checks qualified references at load.
+`requires: [vanilla]` reads the floor straight from the bridge, so upgrading
+the dependency raises it automatically — the engine refuses to load your mod
+without its dependency and checks qualified references at load.
+
+To **publish** a mod's content for others to depend on, emit a bridge package
+with `--package` and publish it (e.g. as `@rifted/vanilla`):
+
+```bash
+rifted typegen dist/gcf.json --package --name @rifted/vanilla   # → @rifted/vanilla/
+```
+
+The package is pure typed metadata — refs, event handles, state handles — with
+`@rifted/sdk` as a peer dependency so consumers share one SDK instance.
 
 Localization flow: inline `name`/`description` strings compile into generated
 fluent sections; anything in hand-written `locales/*.ftl` wins over them, so

@@ -27,7 +27,8 @@ export const pkg = Pkg('__NS__', {
 	authors: ['you'],
 	defaultLocale: 'en',
 	// depend on other mods to reference their content ("vanilla:berserk"):
-	// requires: { vanilla: 1 },
+	//   import * as vanilla from '@rifted/vanilla'
+	//   requires: [vanilla],
 })
 `
 

@@ -101,6 +101,7 @@ export {
 // localization
 export type { LocalesBuild, LocEntry, LocText, MissingString } from './locales/index'
 export {
+	type ContentDependency,
 	type ContentModule,
 	defineContent,
 	Pkg,

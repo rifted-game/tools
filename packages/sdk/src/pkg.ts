@@ -31,6 +31,17 @@ import {
 } from './locales/index'
 import { validateDocument } from './schema/index'
 
+/**
+ * A dependency on another mod, as exposed by its typed bridge package
+ * (`rifted typegen`). `import * as vanilla from '@rifted/vanilla'` is a
+ * ContentDependency — its namespace and version flow straight into requires,
+ * so the floor tracks whatever version of the dependency you have installed.
+ */
+export interface ContentDependency {
+	readonly namespace: string
+	readonly version: number
+}
+
 export interface PkgOptions {
 	/** integer document version (other mods' requires compare against it) */
 	version?: number
@@ -39,10 +50,36 @@ export interface PkgOptions {
 	/** semver of the .rmod distribution */
 	semver?: string
 	authors?: string[]
-	/** dependencies: namespace → minimum document version */
-	requires?: Record<string, number>
+	/**
+	 * dependencies the engine must load first. Either a literal map
+	 * (namespace → minimum document version) or the typed bridge modules
+	 * themselves — `requires: [vanilla]` pulls the version from the package.
+	 */
+	requires?: Record<string, number> | readonly ContentDependency[]
 	/** locale that bare-string texts belong to (default "en") */
 	defaultLocale?: string
+}
+
+/** normalize requires to a namespace → min-version map (dep modules → record) */
+function normalizeRequires(requires: PkgOptions['requires']): Record<string, number> | undefined {
+	if (!requires) return undefined
+	const out: Record<string, number> = {}
+	const add = (ns: string, version: number) => {
+		if (!/^[a-z0-9_]+$/.test(ns)) {
+			throw new RiftedBuildError(`requires: bad namespace "${ns}" (must match [a-z0-9_]+)`)
+		}
+		if (!Number.isInteger(version) || version < 0) {
+			throw new RiftedBuildError(`requires: ${ns} version must be a non-negative integer`)
+		}
+		// a namespace listed twice keeps the highest floor
+		out[ns] = Math.max(out[ns] ?? 0, version)
+	}
+	if (Array.isArray(requires)) {
+		for (const dep of requires) add(dep.namespace, dep.version)
+	} else {
+		for (const [ns, version] of Object.entries(requires as Record<string, number>)) add(ns, version)
+	}
+	return Object.keys(out).length > 0 ? out : undefined
 }
 
 export interface PkgMeta {
@@ -87,7 +124,7 @@ export class RiftedPkg extends Content {
 		}
 		this.namespace = namespace
 		this.version = opts.version ?? 1
-		this.requires = opts.requires
+		this.requires = normalizeRequires(opts.requires)
 		this.meta = {
 			namespace,
 			name: opts.name ?? namespace,
@@ -156,7 +193,7 @@ export class RiftedPkg extends Content {
 			namespace: this.namespace,
 			version: this.version,
 		}
-		if (this.requires && Object.keys(this.requires).length > 0) doc.requires = this.requires
+		if (this.requires) doc.requires = this.requires
 		for (const section of SECTIONS) {
 			const entries = flat.sections[section]
 			if (entries.length === 0) continue

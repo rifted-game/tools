@@ -9,6 +9,8 @@ const dirs = readdirSync(packagesDir)
 // that internal deps in the packed tarball were rewritten to the matching
 // version. bun pm pack reads workspace versions from bun.lock, which can go
 // stale and silently publish a wrong pin (e.g. cli depending on an old sdk).
+// The `version-packages` script regenerates bun.lock after the bump to keep
+// it fresh; this check stays as defense-in-depth if that ever regresses.
 const workspaceVersions = new Map<string, string>()
 for (const dir of dirs) {
 	const p = join(packagesDir, dir, 'package.json')

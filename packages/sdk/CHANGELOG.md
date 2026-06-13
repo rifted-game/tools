@@ -1,5 +1,15 @@
 # @rifted/sdk
 
+## 1.1.1
+
+### Patch Changes
+
+- Fix `@rifted/sdk/tsconfig.mod.json` not being resolvable. It shipped in the
+  tarball but was missing from the package `exports`, so the `extends:
+"@rifted/sdk/tsconfig.mod.json"` in the scaffolded mod tsconfig (and any mod
+  following it) failed to resolve under exports-based module resolution. Added
+  it to `exports`.
+
 ## 1.1.0
 
 ### Minor Changes

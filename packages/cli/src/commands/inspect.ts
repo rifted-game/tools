@@ -63,7 +63,7 @@ export const inspectCommand = defineCommand({
 		}
 
 		try {
-			const { manifest, gcf, assets, locales } = await openRmod(buf)
+			const { manifest, gcf, assets, locales } = await openRmod(new Uint8Array(buf))
 			console.log(`${pc.bold(manifest.name)}  ${pc.dim(`v${manifest.version}`)}`)
 			if (manifest.authors.length > 0) console.log(pc.dim(`by ${manifest.authors.join(', ')}`))
 			console.log('')

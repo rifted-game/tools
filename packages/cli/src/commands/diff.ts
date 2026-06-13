@@ -9,7 +9,7 @@ import { diffDocuments, renderValue } from '../diff'
 
 async function readDoc(path: string, label: string): Promise<Record<string, unknown>> {
 	const buf = readFileSync(resolve(process.cwd(), path))
-	if (label.endsWith('.rmod')) return (await openRmod(buf)).gcf
+	if (label.endsWith('.rmod')) return (await openRmod(new Uint8Array(buf))).gcf
 	return JSON.parse(buf.toString('utf-8'))
 }
 

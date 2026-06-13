@@ -1,6 +1,6 @@
 {
 	"name": "@rifted/sdk",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Typed authoring surface for Rifted game content (GCF)",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -39,7 +39,8 @@
 		"./locales": {
 			"types": "./dist/locales/index.d.ts",
 			"import": "./dist/locales/index.js"
-		}
+		},
+		"./tsconfig.mod.json": "./tsconfig.mod.json"
 	},
 	"files": [
 		"dist",

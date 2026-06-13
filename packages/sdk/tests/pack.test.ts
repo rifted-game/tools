@@ -49,7 +49,7 @@ test('the archive is deterministic: same input, byte-identical .rmod', async () 
 	const input = () => ({ gcf: vanillaPkg().build(), assets: vanillaAssets() })
 	const a = await packRmod(input())
 	const b = await packRmod(input())
-	expect(Buffer.from(a.data).equals(Buffer.from(b.data))).toBe(true)
+	expect(a.data).toEqual(b.data)
 })
 
 test('an asset outside assets/ is rejected', async () => {

@@ -39,7 +39,7 @@ export const typegenCommand = defineCommand({
 		try {
 			const buf = readFileSync(path)
 			doc = args.file.endsWith('.rmod')
-				? (await openRmod(buf)).gcf
+				? (await openRmod(new Uint8Array(buf))).gcf
 				: JSON.parse(buf.toString('utf-8'))
 		} catch (err: any) {
 			console.error(pc.red(`Failed to read ${args.file}: ${err.message}`))

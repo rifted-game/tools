@@ -21,7 +21,7 @@ function collectAssets(root: string): Record<string, Uint8Array> {
 		for (const entry of readdirSync(dir, { withFileTypes: true })) {
 			const full = join(dir, entry.name)
 			if (entry.isDirectory()) walk(full)
-			else out[relative(root, full).replaceAll('\\', '/')] = readFileSync(full)
+			else out[relative(root, full).replaceAll('\\', '/')] = new Uint8Array(readFileSync(full))
 		}
 	}
 	walk(assetsDir)

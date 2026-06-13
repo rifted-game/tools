@@ -1,6 +1,6 @@
 {
 	"name": "@rifted/sdk",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Typed authoring surface for Rifted game content (GCF)",
 	"type": "module",
 	"main": "./dist/index.js",

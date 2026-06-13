@@ -1,5 +1,14 @@
 # @rifted/sdk
 
+## 1.1.0
+
+### Minor Changes
+
+- Content dependencies: reuse another mod's content through a typed bridge.
+
+  - `PkgOptions.requires` now accepts dependency modules (`ContentDependency[]`) alongside the literal map. `requires: [vanilla]` pulls the version floor from the installed bridge package instead of a hand-written literal, so upgrading the dependency raises the floor automatically.
+  - `rifted typegen --package [--name]` emits a publish-ready typed-bridge package (refs, event handles, state handles) with `@rifted/sdk` as a peer dependency — the basis for shipping `@rifted/vanilla` and any mod-as-dependency.
+
 ## 1.0.0
 
 ### Major Changes
